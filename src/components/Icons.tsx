@@ -1,5 +1,5 @@
 /**
- * Consistent SVG icon set for FeeLedger.
+ * Consistent SVG icon set for COLLECT-AG.
  * All icons use currentColor so they inherit text color.
  * Size defaults to 20px.
  */

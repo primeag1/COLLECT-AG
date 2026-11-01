@@ -48,9 +48,9 @@ export function PrivacyPage() {
         <Section title="Who we are">
           <p>
             COLLECT-AG is an open-source project hosted at{' '}
-            <a href="https://github.com/feeledger/feeledger.github.io" target="_blank"
+            <a href="https://github.com/primeag1/COLLECT-AG" target="_blank"
                rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>
-              github.com/feeledger/feeledger.github.io
+              github.com/primeag1/COLLECT-AG
             </a>
             . It is served as a static website via GitHub Pages. There is no company,
             no subscription service, and no commercial entity behind this application.
@@ -80,7 +80,7 @@ export function PrivacyPage() {
             </li>
             <li>
               <strong>Your Google Drive</strong> — inside a folder called{' '}
-              <code style={{ background: 'var(--color-bone)', padding: '2px 6px', borderRadius: 4, fontSize: 13 }}>FeeLedger</code>{' '}
+              <code style={{ background: 'var(--color-bone)', padding: '2px 6px', borderRadius: 4, fontSize: 13 }}>COLLECT-AG</code>{' '}
               in your own Drive account. This is the persistent, backed-up copy of your data.
               COLLECT-AG uses the <code style={{ background: 'var(--color-bone)', padding: '2px 6px', borderRadius: 4, fontSize: 13 }}>drive.file</code> scope,
               which means it can only access files and folders that it created — it cannot
@@ -111,7 +111,7 @@ export function PrivacyPage() {
             PDF receipts are generated entirely within your browser using local JavaScript
             libraries. The receipt data is never sent to any external service for rendering.
             The resulting PDF file is saved directly to the{' '}
-            <code style={{ background: 'var(--color-bone)', padding: '2px 6px', borderRadius: 4, fontSize: 13 }}>FeeLedger/Receipts/</code>{' '}
+            <code style={{ background: 'var(--color-bone)', padding: '2px 6px', borderRadius: 4, fontSize: 13 }}>COLLECT-AG/Receipts/</code>{' '}
             folder in your Google Drive.
           </p>
         </Section>
@@ -160,12 +160,12 @@ export function PrivacyPage() {
           </p>
           <ol>
             <li>Open your Google Drive.</li>
-            <li>Find the <strong>FeeLedger</strong> folder.</li>
+            <li>Find the <strong>COLLECT-AG</strong> folder.</li>
             <li>Delete it. All your app data is gone.</li>
           </ol>
           <p>
             To clear the local browser cache, clear your browser's site data for
-            feeledger.github.io in your browser settings.
+            primeag1.github.io in your browser settings.
           </p>
         </Section>
 
@@ -191,8 +191,8 @@ export function PrivacyPage() {
             You have full control over your data and your connection to COLLECT-AG. You can:
           </p>
           <ol>
-            <li><strong>Delete all your data:</strong> Go to Settings → Account → Delete All Data inside COLLECT-AG. This deletes the FeeLedger folder from your Google Drive and clears all local data.</li>
-            <li><strong>Delete the Drive folder manually:</strong> Open Google Drive, find the <strong>FeeLedger</strong> folder, and delete it. All your data is gone.</li>
+            <li><strong>Delete all your data:</strong> Go to Settings → Account → Delete All Data inside COLLECT-AG. This deletes the COLLECT-AG folder from your Google Drive and clears all local data.</li>
+            <li><strong>Delete the Drive folder manually:</strong> Open Google Drive, find the <strong>COLLECT-AG</strong> folder, and delete it. All your data is gone.</li>
             <li><strong>Revoke Google account access:</strong> Visit <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>myaccount.google.com/permissions</a> and remove COLLECT-AG. It may still be listed under its previous app name until the OAuth configuration is updated.</li>
           </ol>
           <p>
@@ -209,9 +209,9 @@ export function PrivacyPage() {
           <p>
             Questions about this privacy policy can be raised by opening an issue on the
             project's GitHub repository:{' '}
-            <a href="https://github.com/feeledger/feeledger.github.io/issues"
+            <a href="https://github.com/primeag1/COLLECT-AG/issues"
                target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>
-              github.com/feeledger/feeledger.github.io/issues
+              github.com/primeag1/COLLECT-AG/issues
             </a>
           </p>
         </Section>

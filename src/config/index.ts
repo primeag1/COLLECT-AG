@@ -11,7 +11,7 @@ export const APP_VERSION = '1.0.0';
 export const SCHEMA_VERSION = 1;
 
 // ── Drive folder structure ────────────────────────────────────────────────
-export const DRIVE_ROOT_FOLDER = 'FeeLedger';
+export const DRIVE_ROOT_FOLDER = 'COLLECT-AG';
 export const DRIVE_DATA_FOLDER = 'Data';
 export const DRIVE_RECEIPTS_FOLDER = 'Receipts';
 export const DRIVE_EXPORTS_FOLDER = 'Exports';

@@ -183,7 +183,7 @@ export async function pushReceiptPDFToDrive(
     return fileId;
 
   } catch (err) {
-    console.error('[FeeLedger] Receipt PDF upload failed:', err);
+    console.error('[COLLECT-AG] Receipt PDF upload failed:', err);
     return null;
   }
 }

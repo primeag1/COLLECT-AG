@@ -137,7 +137,7 @@ function isTokenValid(expiresAt: number | null): boolean {
 //
 // `requestDriveAndIdentify`, `requestDriveAccess` and `connectDriveInteractive`
 // (below) all use Google's popup-based OAuth2 token client. That works fine
-// in a normal browser tab, but when FeeLedger is installed and launched as a
+// in a normal browser tab, but when COLLECT-AG is installed and launched as a
 // standalone PWA on Android, the popup it opens loses its `window.opener`
 // link back to this page, so the token callback never fires — this is what
 // caused "Sync now" to do nothing, and silent background refreshes to fail
@@ -368,7 +368,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!import.meta.env.DEV) return;
       const mock: AppUser = {
         id: 'dev_user_01',
-        email: 'dev@feeledger.app',
+        email: 'dev@collect-ag.app',
         displayName: 'Dev User',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

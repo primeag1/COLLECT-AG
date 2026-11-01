@@ -40,7 +40,7 @@ export function TermsPage() {
 
         <Section title="Agreement to Terms">
           <p style={{ fontSize: 15, color: 'var(--color-charcoal)', lineHeight: 1.75 }}>
-            By accessing or using COLLECT-AG (currently available at feeledger.github.io), you agree to be bound by these
+            By accessing or using COLLECT-AG (currently available at primeag1.github.io/COLLECT-AG), you agree to be bound by these
             Terms of Service. If you do not agree to these terms, please do not use the application.
           </p>
           <p style={{ fontSize: 15, color: 'var(--color-charcoal)', lineHeight: 1.75 }}>
@@ -125,7 +125,7 @@ export function TermsPage() {
               Using Settings → Account → Delete All Data within the application
             </li>
             <li style={{ fontSize: 15, color: 'var(--color-charcoal)', lineHeight: 1.7 }}>
-              Manually deleting the <strong>FeeLedger</strong> folder from your Google Drive
+              Manually deleting the <strong>COLLECT-AG</strong> folder from your Google Drive
             </li>
             <li style={{ fontSize: 15, color: 'var(--color-charcoal)', lineHeight: 1.7 }}>
               Revoking Google account access at myaccount.google.com/permissions
@@ -136,7 +136,7 @@ export function TermsPage() {
         <Section title="Open Source Licence">
           <p style={{ fontSize: 15, color: 'var(--color-charcoal)', lineHeight: 1.75 }}>
             COLLECT-AG is open source software released under the{' '}
-            <a href="https://github.com/feeledger/feeledger.github.io/blob/main/LICENSE"
+            <a href="https://github.com/primeag1/COLLECT-AG/blob/main/LICENSE"
                target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>
               MIT Licence
             </a>.
@@ -175,9 +175,9 @@ export function TermsPage() {
         <Section title="Contact">
           <p style={{ fontSize: 15, color: 'var(--color-charcoal)', lineHeight: 1.75 }}>
             Questions about these terms can be raised by opening an issue at{' '}
-            <a href="https://github.com/feeledger/feeledger.github.io/issues"
+            <a href="https://github.com/primeag1/COLLECT-AG/issues"
                target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>
-              github.com/feeledger/feeledger.github.io/issues
+              github.com/primeag1/COLLECT-AG/issues
             </a>.
           </p>
         </Section>

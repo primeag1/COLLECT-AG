@@ -1,5 +1,5 @@
 /**
- * Reads and writes FeeLedger data JSON files in Google Drive.
+ * Reads and writes COLLECT-AG data JSON files in Google Drive.
  *
  * CROSS-DEVICE FIX: When file IDs aren't in local IndexedDB (new device),
  * we search Drive by name inside the Data folder and cache the found IDs.

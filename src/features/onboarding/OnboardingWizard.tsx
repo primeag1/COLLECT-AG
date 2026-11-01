@@ -113,7 +113,7 @@ function StepConnectDrive({
         {connected
           ? "You're all set. Your data will now sync automatically."
             : <>COLLECT-AG saves everything — members, payments, receipts — directly to the{' '}
-              <strong>FeeLedger</strong> folder in your own Google Drive for compatibility. We never see it or store
+              <strong>COLLECT-AG</strong> folder in your own Google Drive. We never see it or store
               it ourselves. This also lets you pick up right where you left off on another device.</>
         }
       </p>

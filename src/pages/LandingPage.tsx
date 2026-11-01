@@ -382,7 +382,7 @@ export function LandingPage() {
             <h2 className="text-section" style={{ marginBottom: 20 }}>Your data is yours. Stored in your Drive.</h2>
             <p className="text-body" style={{ color: 'var(--color-slate)', marginBottom: 14 }}>
               COLLECT-AG stores everything — member records, payments, receipts — in the legacy folder
-              called <strong>FeeLedger</strong> inside your own Google Drive for compatibility. We never see it,
+              called <strong>COLLECT-AG</strong> inside your own Google Drive. We never see it,
               never store it, and never sell it.
             </p>
             <p className="text-body" style={{ color: 'var(--color-slate)', marginBottom: 24 }}>
@@ -440,7 +440,7 @@ export function LandingPage() {
                 { label: 'Features',       href: '#features',  internal: false },
                 { label: 'Privacy Policy', href: '/privacy',   internal: true  },
                 { label: 'Terms of Service', href: '/terms', internal: true },
-                { label: 'Open source',    href: 'https://github.com/feeledger/feeledger.github.io', internal: false },
+                { label: 'Open source',    href: 'https://github.com/primeag1/COLLECT-AG', internal: false },
               ].map(l => (
                 <p key={l.label} style={{ marginBottom: 8 }}>
                   {l.internal
@@ -455,8 +455,8 @@ export function LandingPage() {
             <div>
               <p className="text-footer-header" style={{ color: 'var(--color-slate)', marginBottom: 14 }}>Contribute</p>
               {[
-                { label: 'GitHub ↗',        href: 'https://github.com/feeledger/feeledger.github.io' },
-                { label: 'Report issue ↗',  href: 'https://github.com/feeledger/feeledger.github.io/issues' },
+                { label: 'GitHub ↗',        href: 'https://github.com/primeag1/COLLECT-AG' },
+                { label: 'Report issue ↗',  href: 'https://github.com/primeag1/COLLECT-AG/issues' },
               ].map(l => (
                 <p key={l.label} style={{ marginBottom: 8 }}>
                   <a href={l.href} className="text-footer-link" target="_blank" rel="noopener noreferrer"

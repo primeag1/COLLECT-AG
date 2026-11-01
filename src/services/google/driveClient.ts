@@ -119,6 +119,21 @@ export const driveClient = {
   },
 
   /**
+   * Rename a folder created by this app.
+   */
+  async renameFolder(token: string, folderId: string, name: string): Promise<DriveFile> {
+    return driveRequest<DriveFile>(
+      `${DRIVE_API}/files/${folderId}?fields=id,name,mimeType`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      },
+      token,
+    );
+  },
+
+  /**
    * Upload or update a JSON file in Drive (multipart).
    * If fileId is provided, updates the existing file.
    * Otherwise creates a new file.

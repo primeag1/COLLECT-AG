@@ -483,10 +483,10 @@ function SyncTab() {
       <SectionCard title="Data Location" subtitle="Where your COLLECT-AG data lives in Google Drive">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {[
-            { icon: '📁', label: 'Root folder',  path: 'My Drive / FeeLedger / (legacy name)' },
-            { icon: '🗃️', label: 'Data files',   path: 'FeeLedger / Data /' },
-            { icon: '🧾', label: 'Receipt PDFs', path: 'FeeLedger / Receipts / YYYY /' },
-            { icon: '📤', label: 'Exports',       path: 'FeeLedger / Exports /' },
+            { icon: '📁', label: 'Root folder',  path: 'My Drive / COLLECT-AG /' },
+            { icon: '🗃️', label: 'Data files',   path: 'COLLECT-AG / Data /' },
+            { icon: '🧾', label: 'Receipt PDFs', path: 'COLLECT-AG / Receipts / YYYY /' },
+            { icon: '📤', label: 'Exports',       path: 'COLLECT-AG / Exports /' },
           ].map((item, i, arr) => (
             <div key={item.label} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '11px 0', borderBottom: i < arr.length - 1 ? '1px solid var(--color-dust)' : 'none' }}>
               <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
@@ -498,7 +498,7 @@ function SyncTab() {
           ))}
         </div>
         <p style={{ marginTop: 14, fontSize: 13, color: 'var(--color-slate)', lineHeight: 1.65 }}>
-          To permanently delete your data, delete the <strong>FeeLedger</strong> folder from your Google Drive.
+          To permanently delete your data, delete the <strong>COLLECT-AG</strong> folder from your Google Drive.
           COLLECT-AG only accesses files it created — it cannot read any other Drive files.
         </p>
       </SectionCard>
@@ -741,7 +741,7 @@ function AccountTab() {
     if (confirm !== 'DELETE') return;
     setDeleting(true);
     try {
-      // Delete the FeeLedger root folder from Drive
+      // Delete the COLLECT-AG root folder from Drive
       const freshToken = await ensureFreshToken();
       if (freshToken) {
         const { driveMetaRepository } = await import('../db/repositories/syncRepository');
@@ -769,7 +769,7 @@ function AccountTab() {
       signOut();
       navigate('/', { replace: true });
     } catch {
-      setMsg('COLLECT-AG could not delete your data. Please try again or delete the FeeLedger folder from Google Drive manually.');
+      setMsg('COLLECT-AG could not delete your data. Please try again or delete the COLLECT-AG folder from Google Drive manually.');
       setDeleting(false);
     }
   };
@@ -795,7 +795,7 @@ function AccountTab() {
       <SectionCard title="Delete All Data" subtitle="Permanently remove your data from Google Drive and sign out">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <p style={{ fontSize: 14, color: 'var(--color-charcoal)', lineHeight: 1.7 }}>
-            This will permanently delete the <strong>FeeLedger</strong> folder from your Google Drive,
+            This will permanently delete the <strong>COLLECT-AG</strong> folder from your Google Drive,
             removing all your members, payments, receipts, and settings.
             This action cannot be undone.
           </p>

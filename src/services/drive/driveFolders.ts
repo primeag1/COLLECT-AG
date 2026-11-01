@@ -1,8 +1,8 @@
 /**
- * Manages the FeeLedger folder structure in Google Drive.
+ * Manages the COLLECT-AG folder structure in Google Drive.
  *
  * Structure:
- *   FeeLedger/
+ *   COLLECT-AG/
  *   ├── Data/
  *   │   ├── students.json
  *   │   ├── batches.json
@@ -20,15 +20,25 @@
 
 import { driveClient } from '../google/driveClient';
 import { driveMetaRepository } from '../../db/repositories/syncRepository';
+import { DRIVE_ROOT_FOLDER, DRIVE_DATA_FOLDER, DRIVE_RECEIPTS_FOLDER, DRIVE_EXPORTS_FOLDER } from '../../config';
 import type { DriveMetadata } from '../../types';
 
-const ROOT_NAME     = 'FeeLedger';
-const DATA_NAME     = 'Data';
-const RECEIPTS_NAME = 'Receipts';
-const EXPORTS_NAME  = 'Exports';
+const LEGACY_ROOT_NAME = 'FeeLedger';
 const FOLDER_MIME   = 'application/vnd.google-apps.folder';
 
 // ── Folder resolution ─────────────────────────────────────────────────────────
+
+async function findFolder(
+  token: string,
+  name: string,
+  parentId?: string,
+): Promise<string | null> {
+  let query = `name='${name}' and mimeType='${FOLDER_MIME}' and trashed=false`;
+  if (parentId) query += ` and '${parentId}' in parents`;
+
+  const existing = await driveClient.listFiles(token, query, 'files(id,name)');
+  return existing[0]?.id ?? null;
+}
 
 /**
  * Find an existing folder by name inside a parent, or create it.
@@ -39,12 +49,8 @@ async function findOrCreateFolder(
   name: string,
   parentId?: string,
 ): Promise<string> {
-  // Search for existing
-  let query = `name='${name}' and mimeType='${FOLDER_MIME}' and trashed=false`;
-  if (parentId) query += ` and '${parentId}' in parents`;
-
-  const existing = await driveClient.listFiles(token, query, 'files(id,name)');
-  if (existing.length > 0) return existing[0].id;
+  const existingId = await findFolder(token, name, parentId);
+  if (existingId) return existingId;
 
   // Create new
   const created = await driveClient.createFolder(token, name, parentId);
@@ -54,7 +60,7 @@ async function findOrCreateFolder(
 // ── Main initialiser ──────────────────────────────────────────────────────────
 
 /**
- * Ensure the full FeeLedger folder structure exists in Drive.
+ * Ensure the full COLLECT-AG folder structure exists in Drive.
  * Cached in IndexedDB — only makes Drive API calls when folder IDs are missing.
  * Safe to call on every app start.
  */
@@ -67,33 +73,44 @@ export async function ensureDriveFolders(token: string): Promise<DriveMetadata> 
   let receiptsId = meta.receiptsFolderId;
   let exportsId  = meta.exportsFolderId;
 
-  // Root: FeeLedger/
+  // Rename the existing app folder in place so existing Drive data is preserved.
   if (!rootId) {
-    rootId = await findOrCreateFolder(token, ROOT_NAME);
+    rootId = await findFolder(token, DRIVE_ROOT_FOLDER) ?? undefined;
+    if (!rootId) {
+      rootId = await findFolder(token, LEGACY_ROOT_NAME) ?? undefined;
+      if (rootId) await driveClient.renameFolder(token, rootId, DRIVE_ROOT_FOLDER);
+    }
+    if (!rootId) {
+      rootId = (await driveClient.createFolder(token, DRIVE_ROOT_FOLDER)).id;
+    }
+    changed = true;
+  } else if (meta.applicationRootFolderName !== DRIVE_ROOT_FOLDER) {
+    await driveClient.renameFolder(token, rootId, DRIVE_ROOT_FOLDER);
     changed = true;
   }
 
   // Data/
   if (!dataId) {
-    dataId = await findOrCreateFolder(token, DATA_NAME, rootId);
+    dataId = await findOrCreateFolder(token, DRIVE_DATA_FOLDER, rootId);
     changed = true;
   }
 
   // Receipts/
   if (!receiptsId) {
-    receiptsId = await findOrCreateFolder(token, RECEIPTS_NAME, rootId);
+    receiptsId = await findOrCreateFolder(token, DRIVE_RECEIPTS_FOLDER, rootId);
     changed = true;
   }
 
   // Exports/
   if (!exportsId) {
-    exportsId = await findOrCreateFolder(token, EXPORTS_NAME, rootId);
+    exportsId = await findOrCreateFolder(token, DRIVE_EXPORTS_FOLDER, rootId);
     changed = true;
   }
 
   if (changed) {
     await driveMetaRepository.patch({
       applicationRootFolderId: rootId,
+      applicationRootFolderName: DRIVE_ROOT_FOLDER,
       dataFolderId: dataId,
       receiptsFolderId: receiptsId,
       exportsFolderId: exportsId,
@@ -105,7 +122,7 @@ export async function ensureDriveFolders(token: string): Promise<DriveMetadata> 
 
 /**
  * Get or create a year sub-folder inside Receipts/.
- * e.g. FeeLedger/Receipts/2026/
+ * e.g. COLLECT-AG/Receipts/2026/
  */
 export async function getReceiptsYearFolder(
   token: string,

@@ -27,7 +27,7 @@ interface SyncContextValue {
    * Explicit, user-initiated "Connect Google Drive" action. Forces a visible
    * consent dialog (never silently no-ops), then immediately checks Drive
    * for existing data and, if none is found, pushes current local data so
-   * the FeeLedger folder is created in Drive right away.
+   * the COLLECT-AG folder is created in Drive right away.
    */
   connectDrive: () => Promise<boolean>;
 }
@@ -144,7 +144,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       await syncRepository.clearCompleted();
 
     } catch (err) {
-      console.error('[FeeLedger] Sync push error:', err);
+      console.error('[COLLECT-AG] Sync push error:', err);
 
       if (err instanceof DriveAPIError && err.code === 401) {
         // The token was refused even after ensureFreshToken()'s own retry —
@@ -234,7 +234,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => setSyncState(prev => prev === 'synced' ? 'idle' : prev), 3000);
       return result;
     } catch (err) {
-      console.error('[FeeLedger] Sync pull error:', err);
+      console.error('[COLLECT-AG] Sync pull error:', err);
 
       if (err instanceof DriveAPIError && err.code === 401) {
         setErrorMessage(null);

@@ -21,7 +21,7 @@ You can:
 - See a **dashboard** of your collections at a glance
 - Export reports to **CSV**
 
-Everything runs in your browser. For compatibility, your data is stored in a folder called `FeeLedger` inside **your own Google Drive** — we never see it, store it, or have access to it.
+Everything runs in your browser. Your data is stored in a folder called `COLLECT-AG` inside **your own Google Drive** — we never see it, store it, or have access to it. The first sync after upgrading renames the existing app data folder in place, preserving your files.
 
 ---
 
@@ -114,10 +114,15 @@ npm run build
 
 ### Deploying to GitHub Pages
 
-1. Fork this repo
-2. Go to your fork → Settings → Pages → Source: **GitHub Actions**
-3. Go to Settings → Secrets → Actions → add `VITE_GOOGLE_CLIENT_ID`
-4. Push to `main` — the workflow builds and deploys automatically
+1. In Google Cloud Console, open **APIs & Services → Credentials** and create or select an OAuth 2.0 Client ID with application type **Web application**.
+2. Add the deployed site's origin to **Authorised JavaScript origins**:
+   - `https://primeag1.github.io` for this repository's published app.
+3. Add `https://primeag1.github.io/COLLECT-AG/` to **Authorised redirect URIs** for the installed-PWA sign-in flow, then save.
+4. Copy the OAuth **Client ID** (it ends in `.apps.googleusercontent.com`).
+5. In your GitHub repository, open **Settings → Secrets and variables → Actions → New repository secret**.
+6. Set the secret name to exactly `VITE_GOOGLE_CLIENT_ID`, paste the Client ID as its value, and save. Add it as a **repository secret** so the build job can read it; a secret scoped only to the `github-pages` environment is not available to the build job.
+7. Open **Actions → Deploy to GitHub Pages → Run workflow** and deploy from `main` (or push a commit to `main`). The workflow now stops with a clear error if the Client ID is missing, rather than deploying a broken sign-in page.
+8. When the deployment finishes successfully, reload `https://primeag1.github.io/COLLECT-AG/`. If Google rejects sign-in, confirm that the authorized origin and redirect URI above exactly match the deployed URL.
 
 The app will be live at `https://primeag1.github.io/COLLECT-AG/`
 

@@ -30,6 +30,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Check Google OAuth configuration
+        env:
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
+        run: |
+          if [ -z "$VITE_GOOGLE_CLIENT_ID" ]; then
+            echo "::error::VITE_GOOGLE_CLIENT_ID is missing. Add it under repository Settings > Secrets and variables > Actions, then rerun this workflow."
+            exit 1
+          fi
+
       - name: Lint
         run: npm run lint
 

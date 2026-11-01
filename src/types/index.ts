@@ -279,6 +279,7 @@ export interface SyncQueueItem {
 // ── Drive Metadata ────────────────────────────────────────────────────────
 export interface DriveMetadata {
   applicationRootFolderId?: string;
+  applicationRootFolderName?: string;
   dataFolderId?: string;
   receiptsFolderId?: string;
   exportsFolderId?: string;

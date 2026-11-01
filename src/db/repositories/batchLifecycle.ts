@@ -13,7 +13,7 @@
  *     as-is — only the one membership that ended is marked completed.)
  *
  * This runs automatically once per day (checked on app start) since
- * FeeLedger has no backend/cron — the check happens client-side.
+ * COLLECT-AG has no backend/cron — the check happens client-side.
  */
 
 import { getDB, now } from '../indexeddb/database';

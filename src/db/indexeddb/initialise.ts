@@ -35,7 +35,7 @@ export async function initialiseDatabase(): Promise<void> {
     await processExpiredBatchMemberships();
 
   } catch (err) {
-    console.error('[FeeLedger] Database initialisation error:', err);
+    console.error('[COLLECT-AG] Database initialisation error:', err);
     // Don't throw — allow app to render even if DB has issues,
     // individual operations will show their own errors
   }
