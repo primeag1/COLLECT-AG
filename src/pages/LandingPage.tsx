@@ -88,30 +88,28 @@ export function LandingPage() {
       <nav className="nav-pill" role="navigation" aria-label="Site navigation">
 
         {/* Left: logo */}
-        <a href={import.meta.env.BASE_URL} style={{ textDecoration: 'none', flexShrink: 0 }}>
+        <a href={import.meta.env.BASE_URL} className="landing-nav-home">
           <Logo size={32} variant="full" dark={false} />
         </a>
 
         {/* Centre: desktop links */}
         <div
-          className="nav-links-desktop"
-          style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 1, justifyContent: 'center' }}
+          className="nav-links-desktop landing-nav-links"
         >
-          <a href="#features" className="text-nav" style={{ color: 'var(--color-ink)', textDecoration: 'none' }}>Features</a>
-          <a href="#privacy"  className="text-nav" style={{ color: 'var(--color-ink)', textDecoration: 'none' }}>Privacy</a>
-          <Link to="/privacy" className="text-nav" style={{ color: 'var(--color-ink)', textDecoration: 'none' }}>Policy</Link>
+          <a href="#features" className="text-nav landing-nav-link">Features</a>
+          <a href="#privacy"  className="text-nav landing-nav-link">Privacy</a>
+          <Link to="/privacy" className="text-nav landing-nav-link">Policy</Link>
           <a href="https://github.com/primeag1/COLLECT-AG" target="_blank" rel="noopener noreferrer"
-             className="text-nav" style={{ color: 'var(--color-ink)', textDecoration: 'none' }}>GitHub ↗</a>
+             className="text-nav landing-nav-link">GitHub ↗</a>
         </div>
 
         {/* Right: CTA + hamburger (always visible together on mobile) */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div className="landing-nav-actions">
           <button
-            className="btn-primary"
+            className="btn-primary landing-nav-signin"
             onClick={handleSignIn}
             disabled={signingIn || isLoading}
             aria-label="Sign in with Google"
-            style={{ padding: '9px 16px', gap: 8 }}
           >
             <GoogleIcon size={17} />
             <span className="nav-cta-label">Sign in</span>
@@ -122,16 +120,6 @@ export function LandingPage() {
             className="mobile-menu-btn"
             onClick={() => setMenuOpen(o => !o)}
             aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            style={{
-              display: 'none',
-              alignItems: 'center', justifyContent: 'center',
-              width: 40, height: 40,
-              background: 'rgba(20,20,19,0.06)',
-              border: 'none', borderRadius: '50%',
-              cursor: 'pointer', fontSize: 18,
-              color: 'var(--color-ink)',
-              flexShrink: 0,
-            }}
           >
             {menuOpen ? '✕' : '☰'}
           </button>
@@ -172,7 +160,7 @@ export function LandingPage() {
       )}
 
       {/* ══ Hero ══ */}
-      <section style={{
+      <section id="main-content" tabIndex={-1} style={{
         paddingTop: 'calc(14px + 58px + 56px)',
         paddingBottom: 72,
         paddingLeft: 'clamp(16px, 4vw, 48px)',
@@ -435,7 +423,7 @@ export function LandingPage() {
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 28, marginBottom: 40 }}>
             <div>
-              <p className="text-footer-header" style={{ color: 'var(--color-slate)', marginBottom: 14 }}>Product</p>
+              <p className="text-footer-header" style={{ color: 'rgba(255,255,255,0.72)', marginBottom: 14 }}>Product</p>
               {[
                 { label: 'Features',       href: '#features',  internal: false },
                 { label: 'Privacy Policy', href: '/privacy',   internal: true  },
@@ -453,7 +441,7 @@ export function LandingPage() {
               ))}
             </div>
             <div>
-              <p className="text-footer-header" style={{ color: 'var(--color-slate)', marginBottom: 14 }}>Contribute</p>
+              <p className="text-footer-header" style={{ color: 'rgba(255,255,255,0.72)', marginBottom: 14 }}>Contribute</p>
               {[
                 { label: 'GitHub ↗',        href: 'https://github.com/primeag1/COLLECT-AG' },
                 { label: 'Report issue ↗',  href: 'https://github.com/primeag1/COLLECT-AG/issues' },
@@ -465,9 +453,9 @@ export function LandingPage() {
               ))}
             </div>
             <div>
-              <p className="text-footer-header" style={{ color: 'var(--color-slate)', marginBottom: 14 }}>Data</p>
+              <p className="text-footer-header" style={{ color: 'rgba(255,255,255,0.72)', marginBottom: 14 }}>Data</p>
               {['Stored in your Google Drive', 'Never on our servers', 'GSTIN & tax support built in'].map(i => (
-                <p key={i} className="text-footer-link" style={{ color: 'rgba(255,255,255,0.4)', marginBottom: 8 }}>{i}</p>
+                <p key={i} className="text-footer-link" style={{ color: 'rgba(255,255,255,0.72)', marginBottom: 8 }}>{i}</p>
               ))}
             </div>
           </div>
@@ -476,7 +464,7 @@ export function LandingPage() {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
           }}>
             <Logo size={28} variant="full" dark={true} />
-            <p className="text-footer-link" style={{ color: 'var(--color-slate)' }}>
+            <p className="text-footer-link" style={{ color: 'rgba(255,255,255,0.72)' }}>
               Open-source · MIT Licence · DEVELOPED BY PRIME · {new Date().getFullYear()}
             </p>
           </div>

@@ -865,7 +865,7 @@ function AccountTab() {
               style={{ fontSize: 14, padding: '9px 20px' }}>
               {downloadingBackup ? 'Preparing backup…' : 'Download backup (JSON)'}
             </button>
-            {backupMsg && <p role="status" style={{ fontSize: 12, color: backupMsg.startsWith('Backup download failed') ? '#b91c1c' : '#15803d', marginTop: 8 }}>{backupMsg}</p>}
+            {backupMsg && <p role="status" aria-live="polite" aria-atomic="true" style={{ fontSize: 12, color: backupMsg.startsWith('Backup download failed') ? '#b91c1c' : '#15803d', marginTop: 8 }}>{backupMsg}</p>}
           </div>
 
           {!showConfirm ? (

@@ -23,6 +23,7 @@ export default function App() {
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <AuthProvider>
         <SyncProvider>
+          <a className="skip-link" href="#main-content">Skip to main content</a>
           <Routes>
             {/* Public */}
             <Route path="/" element={<LandingPage />} />

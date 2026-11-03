@@ -28,7 +28,7 @@ export function TermsPage() {
         <Link to="/" className="btn-secondary" style={{ fontSize: 14, padding: '8px 18px' }}>← Back to home</Link>
       </nav>
 
-      <main style={{
+      <main id="main-content" tabIndex={-1} style={{
         paddingTop: 'calc(14px + 58px + 48px)',
         paddingBottom: 96,
         paddingLeft: 'clamp(16px, 6vw, 64px)',
@@ -198,10 +198,10 @@ export function TermsPage() {
       <footer className="footer" style={{ padding: 'clamp(24px,4vw,40px) clamp(16px,4vw,48px)' }}>
         <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <Logo size={24} variant="full" dark={true} />
-          <span style={{ color: 'var(--color-slate)', fontSize: 12 }}>DEVELOPED BY PRIME</span>
+          <span style={{ color: 'rgba(255,255,255,0.72)', fontSize: 12 }}>DEVELOPED BY PRIME</span>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            <Link to="/privacy" style={{ color: 'var(--color-slate)', fontSize: 13, textDecoration: 'none' }}>Privacy Policy</Link>
-            <Link to="/terms"   style={{ color: 'var(--color-slate)', fontSize: 13, textDecoration: 'none' }}>Terms of Service</Link>
+            <Link to="/privacy" style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, textDecoration: 'none' }}>Privacy Policy</Link>
+            <Link to="/terms"   style={{ color: 'rgba(255,255,255,0.72)', fontSize: 13, textDecoration: 'none' }}>Terms of Service</Link>
           </div>
         </div>
       </footer>

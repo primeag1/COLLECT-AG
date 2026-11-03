@@ -586,7 +586,7 @@ export function OnboardingWizard() {
         flex: 1, display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
         padding: 'clamp(24px, 5vw, 48px) clamp(16px, 4vw, 24px)',
       }}>
-        <div style={{
+        <div id="main-content" tabIndex={-1} style={{
           width: '100%', maxWidth: 600,
           background: 'var(--color-white)',
           borderRadius: 28,

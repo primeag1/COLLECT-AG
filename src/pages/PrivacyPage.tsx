@@ -20,7 +20,7 @@ export function PrivacyPage() {
       </nav>
 
       {/* Content */}
-      <main style={{
+      <main id="main-content" tabIndex={-1} style={{
         paddingTop: 'calc(14px + 58px + 56px)',
         paddingBottom: 96,
         paddingLeft: 'clamp(16px, 6vw, 64px)',
@@ -241,7 +241,7 @@ export function PrivacyPage() {
       <footer className="footer" style={{ padding: 'clamp(32px, 5vw, 48px) clamp(16px, 4vw, 48px)' }}>
         <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <Logo size={24} variant="full" dark={true} />
-          <p className="text-footer-link" style={{ color: 'var(--color-slate)' }}>
+          <p className="text-footer-link" style={{ color: 'rgba(255,255,255,0.72)' }}>
             MIT Licence · Open source · DEVELOPED BY PRIME · {new Date().getFullYear()}
           </p>
         </div>

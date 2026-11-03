@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
 
@@ -13,86 +13,96 @@ interface ModalProps {
 
 export function Modal({ open, onClose, title, children, footer, width = 520 }: ModalProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const dialog = ref.current;
+    const focusableElements = () => Array.from(
+      dialog?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    ).filter(element => element.getAttribute('aria-hidden') !== 'true');
+    const firstFocusable = focusableElements()[0];
+    (firstFocusable ?? dialog)?.focus();
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const focusable = focusableElements();
+      const first = focusable[0];
+      const last = focusable.at(-1);
+      if (!first || !last) {
+        e.preventDefault();
+        dialog?.focus();
+      } else if (e.shiftKey && (document.activeElement === first || !dialog?.contains(document.activeElement))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (document.activeElement === last || !dialog?.contains(document.activeElement))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, onClose]);
+    return () => {
+      document.removeEventListener('keydown', handler);
+      previousFocus?.focus();
+    };
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 300,
-        backgroundColor: 'rgba(20,20,19,0.45)',
-        backdropFilter: 'blur(4px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 16,
-      }}
+    <dialog
+      open
+      className="modal-overlay"
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      role="dialog"
       aria-modal="true"
-      aria-label={title}
+      aria-labelledby={titleId}
     >
       <div
         ref={ref}
-        style={{
-          background: 'var(--color-white)',
-          borderRadius: 24,
-          width: '100%',
-          maxWidth: width,
-          maxHeight: '90dvh',
-          display: 'flex',
-          flexDirection: 'column',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.18)',
-        }}
+        tabIndex={-1}
+        className="modal-dialog"
+        style={{ maxWidth: width }}
       >
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '20px 24px',
-          borderBottom: '1px solid var(--color-dust)',
-          flexShrink: 0,
-        }}>
-          <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--color-ink)', letterSpacing: '-0.01em' }}>
+        <div className="modal-header">
+          <h2 id={titleId} className="modal-title">
             {title}
           </h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'var(--color-bone)', border: 'none',
-              borderRadius: '50%', width: 32, height: 32,
-              cursor: 'pointer', fontSize: 16, color: 'var(--color-slate)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}
             aria-label="Close"
+            className="modal-close"
           >
             ✕
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ overflowY: 'auto', padding: '24px', flex: 1 }}>
+        <div className="modal-body">
           {children}
         </div>
 
         {/* Footer */}
         {footer && (
-          <div style={{
-            padding: '16px 24px',
-            borderTop: '1px solid var(--color-dust)',
-            display: 'flex', justifyContent: 'flex-end', gap: 10,
-            flexShrink: 0,
-          }}>
+          <div className="modal-footer">
             {footer}
           </div>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }
 
