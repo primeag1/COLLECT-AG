@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { calculateTax } from './tax';
+import { calculateTax, getDefaultTaxRates, normalizeDefaultRateIds } from './tax';
 import type { TaxRate } from '../types';
 
 const rates: TaxRate[] = [
@@ -38,5 +38,21 @@ describe('calculateTax', () => {
       totalAmount: 99.95,
       taxLines: [],
     });
+  });
+
+  it('normalizes legacy and current default IDs and filters disabled rates', () => {
+    expect(normalizeDefaultRateIds({ defaultRateId: 'cgst' })).toEqual(['cgst']);
+    expect(normalizeDefaultRateIds({ defaultRateIds: [], defaultRateId: 'cgst' })).toEqual([]);
+    expect(normalizeDefaultRateIds({})).toEqual([]);
+    expect(getDefaultTaxRates(undefined)).toEqual([]);
+    expect(getDefaultTaxRates({
+      enabled: false, rates, defaultRateIds: ['cgst'], amountIsInclusive: false,
+    })).toEqual([]);
+    expect(getDefaultTaxRates({
+      enabled: true,
+      rates: [...rates, { id: 'local', name: 'Local', rate: 1, enabled: false }],
+      defaultRateIds: ['cgst', 'local', 'missing'],
+      amountIsInclusive: false,
+    })).toEqual([rates[0]]);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Payment, Student } from '../types';
-import { calculateFeeDue } from './fees';
+import { calculateFeeDue, getFrequencyLabel } from './fees';
 
 const student: Student = {
   id: 'student_1',
@@ -29,6 +29,13 @@ function payment(amount: number): Payment {
 }
 
 describe('calculateFeeDue', () => {
+  it('labels known frequencies and preserves custom frequency text', () => {
+    expect(getFrequencyLabel('')).toBe('');
+    expect(getFrequencyLabel('monthly')).toBe('monthly');
+    expect(getFrequencyLabel('custom')).toBe('as per agreed schedule');
+    expect(getFrequencyLabel('unexpected')).toBe('unexpected');
+  });
+
   it('accrues a new monthly cycle on the admission date', () => {
     const beforeCycle = calculateFeeDue(student, [], new Date(2026, 1, 14));
     const onCycle = calculateFeeDue(student, [], new Date(2026, 1, 15));
@@ -50,5 +57,29 @@ describe('calculateFeeDue', () => {
 
     expect(result.cyclesAccrued).toBe(1);
     expect(result.totalDue).toBe(300);
+  });
+
+  it('handles zero, invalid, instalment, and unsupported recurring values', () => {
+    const noFee = { ...student, values: { fee_amount: 0, fee_type: true } };
+    expect(calculateFeeDue(noFee, [payment(25)]).totalDue).toBe(0);
+
+    const noAnchor = {
+      ...student,
+      createdAt: 'invalid',
+      values: { fee_amount: 500, fee_type: true, fee_frequency: 'quarterly', admission_date: 'invalid' },
+    };
+    expect(calculateFeeDue(noAnchor, [], new Date(2026, 9, 1)).cyclesAccrued).toBe(1);
+
+    for (const [frequency, cycles] of [['instalment2', 2], ['instalment3', 3], ['custom', 1]] as const) {
+      expect(calculateFeeDue({
+        ...student,
+        values: { fee_amount: 500, fee_type: true, fee_frequency: frequency },
+      }, [], new Date(2026, 9, 1)).cyclesAccrued).toBe(cycles);
+    }
+
+    expect(calculateFeeDue({
+      ...student,
+      values: { fee_amount: 500, fee_type: false, fee_frequency: 'yearly' },
+    }, []).frequency).toBe('yearly');
   });
 });
