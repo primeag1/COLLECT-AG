@@ -9,6 +9,7 @@ export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 export const APP_NAME = 'COLLECT-AG';
 export const APP_VERSION = '1.0.0';
 export const SCHEMA_VERSION = 1;
+export const SUPPORT_EMAIL = 'REPLACE_ME@example.com';
 
 // ── Drive folder structure ────────────────────────────────────────────────
 export const DRIVE_ROOT_FOLDER = 'COLLECT-AG';

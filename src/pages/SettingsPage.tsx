@@ -821,23 +821,7 @@ function AccountTab() {
       }
       await Promise.all(rootFolderIds.map(folderId => driveClient.trashFile(freshToken, folderId)));
 
-      // Clear local IndexedDB
-      const { getDB } = await import('../db/indexeddb/database');
-      const db = getDB();
-      await Promise.all([
-        db.students.clear(), db.batches.clear(), db.subjects.clear(),
-        db.academicYears.clear(), db.payments.clear(), db.receipts.clear(),
-        db.studentFields.clear(), db.paymentFields.clear(),
-        db.settings.clear(), db.syncMeta.clear(), db.syncQueue.clear(), db.driveMeta.clear(),
-      ]);
-      // Clear localStorage
-      localStorage.removeItem('fl_user');
-      localStorage.removeItem('fl_token');
-      localStorage.removeItem('fl_token_expires_at');
-      localStorage.removeItem('fl_pwa_dismissed');
-      localStorage.removeItem('fl_wa_template');
-
-      signOut();
+      await signOut(true);
       navigate('/', { replace: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -858,7 +842,7 @@ function AccountTab() {
             <p style={{ fontSize: 13, color: 'var(--color-slate)' }}>{user?.email}</p>
           </div>
         </div>
-        <button className="btn-secondary" onClick={() => { signOut(); navigate('/', { replace: true }); }}
+        <button className="btn-secondary" onClick={async () => { await signOut(); navigate('/', { replace: true }); }}
           style={{ marginTop: 16, fontSize: 14, padding: '9px 20px' }}>
           Sign out
         </button>

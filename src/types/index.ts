@@ -292,6 +292,7 @@ export interface DriveMetadata {
   schemasFileId?: string;
   settingsFileId?: string;
   lastRemoteSyncAt?: string;
+  lastRemotePushAt?: string;
   remoteReconciledAt?: string;
 }
 

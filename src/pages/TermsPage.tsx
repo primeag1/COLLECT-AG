@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Logo } from '../components/Logo';
+import { SUPPORT_EMAIL } from '../config';
 
 const LAST_UPDATED = 'September 2026';
 
@@ -178,6 +179,9 @@ export function TermsPage() {
             <a href="https://github.com/primeag1/COLLECT-AG/issues"
                target="_blank" rel="noopener noreferrer" style={{ color: 'var(--color-link)' }}>
               github.com/primeag1/COLLECT-AG/issues
+            </a>{' '}or email us at{' '}
+            <a href={`mailto:${SUPPORT_EMAIL}`} style={{ color: 'var(--color-link)' }}>
+              {SUPPORT_EMAIL}
             </a>.
           </p>
         </Section>

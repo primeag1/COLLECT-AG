@@ -143,6 +143,13 @@ export function getDB(): FeeLedgerDB {
   return _db;
 }
 
+export async function deleteAndRecreateDB(): Promise<void> {
+  const currentDB = getDB();
+  _db = null;
+  await currentDB.delete();
+  await getDB().open();
+}
+
 // ── ID generation ─────────────────────────────────────────────────────────────
 
 export function generateId(prefix: string): string {

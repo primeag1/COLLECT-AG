@@ -2,6 +2,11 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; connect-src 'self' https://www.googleapis.com https://oauth2.googleapis.com https://accounts.google.com/gsi/; frame-src https://accounts.google.com/gsi/; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; font-src 'self'; img-src 'self' data: https://*.googleusercontent.com; base-uri 'self'; form-action 'self'"
+    />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/collect-ag-mark.svg" />
@@ -36,29 +41,8 @@
     <!-- Google Identity Services — async, non-blocking -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
-    <!--
-      GitHub Pages SPA redirect restoration.
-      404.html encodes the original path as ?p=...
-      This script restores it before React mounts.
-    -->
-    <script>
-      (function() {
-        var redirect = sessionStorage.getItem('spa_redirect');
-        if (redirect) {
-          sessionStorage.removeItem('spa_redirect');
-          var url = new URL(redirect, location.origin);
-          history.replaceState(null, '', url.pathname + url.search + url.hash);
-        }
-        var query = window.location.search;
-        if (query) {
-          var params = new URLSearchParams(query);
-          var path = params.get('p');
-          if (path) {
-            history.replaceState(null, '', path);
-          }
-        }
-      })();
-    </script>
+    <!-- Restore GitHub Pages SPA routes before React mounts. -->
+    <script src="%BASE_URL%spa-redirect.js"></script>
 
     <title>COLLECT-AG</title>
   </head>

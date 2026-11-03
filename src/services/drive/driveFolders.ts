@@ -22,6 +22,7 @@ import { driveClient } from '../google/driveClient';
 import { driveMetaRepository } from '../../db/repositories/syncRepository';
 import { DRIVE_ROOT_FOLDER, DRIVE_DATA_FOLDER, DRIVE_RECEIPTS_FOLDER, DRIVE_EXPORTS_FOLDER } from '../../config';
 import type { DriveMetadata } from '../../types';
+import { escapeDriveQuery } from '../google/driveQuery';
 
 const LEGACY_ROOT_NAME = 'FeeLedger';
 const FOLDER_MIME   = 'application/vnd.google-apps.folder';
@@ -33,7 +34,7 @@ async function findFolder(
   name: string,
   parentId?: string,
 ): Promise<string | null> {
-  let query = `name='${name}' and mimeType='${FOLDER_MIME}' and trashed=false`;
+  let query = `name='${escapeDriveQuery(name)}' and mimeType='${FOLDER_MIME}' and trashed=false`;
   if (parentId) query += ` and '${parentId}' in parents`;
 
   const existing = await driveClient.listFiles(token, query, 'files(id,name)');

@@ -8,6 +8,7 @@
 import { driveClient, DriveAPIError } from '../google/driveClient';
 import { driveMetaRepository } from '../../db/repositories/syncRepository';
 import { SCHEMA_VERSION } from '../../config/index';
+import { escapeDriveQuery } from '../google/driveQuery';
 
 export const DATA_FILES = {
   students:  'students.json',
@@ -55,7 +56,7 @@ async function searchFileByName(
 ): Promise<string | null> {
   const files = await driveClient.listFiles(
     token,
-    `name='${fileName}' and '${parentFolderId}' in parents and trashed=false`,
+    `name='${escapeDriveQuery(fileName)}' and '${parentFolderId}' in parents and trashed=false`,
     'files(id,name,modifiedTime)',
   );
   return files.length > 0 ? files[0].id : null;

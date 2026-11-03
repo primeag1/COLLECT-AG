@@ -121,7 +121,8 @@ export async function pushAllToDrive(token: string): Promise<void> {
     const timestamp = time ? Date.parse(time) : 0;
     return Number.isNaN(timestamp) ? latest : Math.max(latest, timestamp);
   }, Date.now());
-  await driveMetaRepository.patch({ lastRemoteSyncAt: new Date(latestRemoteTime).toISOString() });
+  const syncTime = new Date(latestRemoteTime).toISOString();
+  await driveMetaRepository.patch({ lastRemoteSyncAt: syncTime, lastRemotePushAt: syncTime });
 }
 
 // ── Pull (Drive → local) ──────────────────────────────────────────────────────
