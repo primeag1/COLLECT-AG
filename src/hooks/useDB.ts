@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { studentRepository } from '../db/repositories/studentRepository';
 import { paymentRepository } from '../db/repositories/paymentRepository';
 import { receiptRepository } from '../db/repositories/receiptRepository';
@@ -18,6 +18,8 @@ function useAsync<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
+  const fetcherRef = useRef(fetcher);
+  const dependencyKey = JSON.stringify(deps);
 
   const refetch = useCallback(() => setTick(t => t + 1), []);
 
@@ -35,15 +37,18 @@ function useAsync<T>(
   }, []);
 
   useEffect(() => {
+    fetcherRef.current = fetcher;
+  }, [fetcher]);
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetcher()
+    fetcherRef.current()
       .then(result => { if (!cancelled) { setData(result); setLoading(false); } })
       .catch(err  => { if (!cancelled) { setError(String(err)); setLoading(false); } });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tick, ...deps]);
+  }, [tick, dependencyKey]);
 
   return { data, loading, error, refetch };
 }

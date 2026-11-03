@@ -42,8 +42,7 @@ function BusinessTab({ settings, onPatch }: { settings: AppSettings; onPatch: (p
   useEffect(() => {
     if (savedRef.current) return;
     setForm({ ...b });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings]);
+  }, [settings, b]);
 
   const set = (key: string, val: string) => setForm(f => ({ ...f, [key]: val }));
 
@@ -131,8 +130,7 @@ function ReceiptTab({ settings, onPatch }: { settings: AppSettings; onPatch: (p:
     setIncludeYear(rn.includeYear);
     setIncludeMonth(rn.includeMonth);
     setPadding(rn.padding);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings]);
+  }, [rn.prefix, rn.includeYear, rn.includeMonth, rn.padding]);
 
   const preview = [
     prefix,
@@ -210,7 +208,6 @@ function PaymentModesTab({ settings, onPatch }: { settings: AppSettings; onPatch
   useEffect(() => {
     if (modesSavedRef.current) return;
     setModes(settings.paymentModes);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
   const toggle = (id: string, enabled: boolean) =>
@@ -558,7 +555,6 @@ function TaxTab({ settings, onPatch }: { settings: AppSettings; onPatch: (p: Par
   React.useEffect(() => {
     if (taxSavedRef.current) return;
     setTax(normaliseTax(settings.taxSettings));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
   const handleSave = async () => {

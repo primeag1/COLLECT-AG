@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { usePayments, useStudents, useAllBatches, useAcademicYears, useSettings } from '../hooks/useDB';
 import { PageHeader, Spinner, EmptyState } from '../components/ui/index';
 import { serializeCSV } from '../utils/csv';
@@ -102,8 +102,10 @@ export function ReportsPage() {
   const [sortDir,      setSortDir]      = useState<'desc' | 'asc'>('desc');
 
   // ── Lookup helpers ─────────────────────────────────────────────────────────────
-  const getStudentName = (id: string) =>
-    String(students?.find(s => s.id === id)?.values['student_name'] ?? 'Unknown');
+  const getStudentName = useCallback(
+    (id: string) => String(students?.find(s => s.id === id)?.values['student_name'] ?? 'Unknown'),
+    [students],
+  );
   const getBatchName   = (id?: string) =>
     id ? (batches?.find(b => b.id === id)?.name ?? '') : '';
   const getBatchYear   = (batchId?: string) => {
@@ -139,8 +141,10 @@ export function ReportsPage() {
     });
 
     return list;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [payments, dateFrom, dateTo, filterMode, filterBatch, filterStudent, filterYear, sortField, sortDir]);
+  }, [
+    payments, batches, getStudentName,
+    dateFrom, dateTo, filterMode, filterBatch, filterStudent, filterYear, sortField, sortDir,
+  ]);
 
   // ── Summary stats ─────────────────────────────────────────────────────────────
   const totalAmount = useMemo(() => filtered.reduce((s, p) => s + p.amount, 0), [filtered]);

@@ -63,6 +63,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
   const retryTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const offlineQueueRef = useRef<boolean>(false);
   const initialSyncStartedRef = useRef(false);
+  const doPushRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     driveMetaRepository.get().then(meta => {
@@ -76,7 +77,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       setSyncState(prev => prev === 'offline' ? 'idle' : prev);
       if (offlineQueueRef.current) {
         offlineQueueRef.current = false;
-        setTimeout(() => doPush(), 1500);
+        setTimeout(() => doPushRef.current(), 1500);
       }
     };
     window.addEventListener('offline', handleOffline);
@@ -86,7 +87,6 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online',  handleOnline);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -178,8 +178,8 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     } finally {
       syncingRef.current = false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryAttempt, ensureFreshToken]);
+  doPushRef.current = () => { void doPush(); };
 
   const push = useCallback(async () => {
     await doPush();
@@ -256,7 +256,6 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
       syncingRef.current = false;
       markInitialSyncDone();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureFreshToken, markInitialSyncDone]);
 
   // ── Connect Drive — explicit user action ──────────────────────────────────
@@ -294,8 +293,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     pull().finally(() => clearTimeout(timeout));
 
     return () => clearTimeout(timeout);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, markInitialSyncDone, attemptSilentReconnect, pull]);
 
   // ── Auto-push every 5 minutes ─────────────────────────────────────────────
 

@@ -1,31 +1,41 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export function PWAUpdateNotifier() {
   const [showUpdate, setShowUpdate] = useState(false);
+  const showUpdateRef = useRef(showUpdate);
+  showUpdateRef.current = showUpdate;
 
   useEffect(() => {
-    // Listen for vite-plugin-pwa's update event
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(registration => {
-        registration.addEventListener('updatefound', () => {
-          const newWorker = registration.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New content available — prompt user to refresh
-              setShowUpdate(true);
-            }
-          });
-        });
-      });
-
-      // Also listen for controller change (when skipWaiting fires)
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // New SW took control — reload only if we already flagged an update
-        if (showUpdate) window.location.reload();
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!('serviceWorker' in navigator)) return;
+    let active = true;
+    let registration: ServiceWorkerRegistration | undefined;
+    const handleUpdateFound = () => {
+      const newWorker = registration?.installing;
+      if (!newWorker) return;
+      const handleStateChange = () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          setShowUpdate(true);
+        }
+      };
+      newWorker.addEventListener('statechange', handleStateChange);
+      if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        setShowUpdate(true);
+      }
+    };
+    const handleControllerChange = () => {
+      if (showUpdateRef.current) window.location.reload();
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    navigator.serviceWorker.ready.then(readyRegistration => {
+      if (!active) return;
+      registration = readyRegistration;
+      registration.addEventListener('updatefound', handleUpdateFound);
+    });
+    return () => {
+      active = false;
+      registration?.removeEventListener('updatefound', handleUpdateFound);
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    };
   }, []);
 
   if (!showUpdate) return null;
