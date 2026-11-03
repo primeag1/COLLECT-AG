@@ -43,7 +43,13 @@ jobs:
         run: npm run lint
 
       - name: TypeScript check
-        run: npx tsc --noEmit
+        run: npx tsc -b
+
+      - name: Test
+        run: npm test
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Build
         env:
