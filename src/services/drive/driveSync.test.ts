@@ -17,7 +17,9 @@ const { driveClient } = vi.hoisted(() => ({
 vi.mock('../google/driveClient', () => ({ driveClient }));
 
 import { getDB } from '../../db/indexeddb/database';
+import { getDefaultSettings } from '../../db/indexeddb/defaultSettings';
 import { driveMetaRepository } from '../../db/repositories/syncRepository';
+import { settingsRepository } from '../../db/repositories/settingsRepository';
 import { pullAllFromDrive, pushAllToDrive } from './driveSync';
 
 const folderMetadata = {
@@ -74,6 +76,7 @@ describe('Drive sync safety', () => {
       ...folderMetadata,
       studentsFileId: 'students-file',
     });
+
     driveClient.downloadJSON.mockImplementation(async (_token: string, fileId: string) => {
       if (fileId !== 'students-file') return null;
       return {
@@ -99,6 +102,64 @@ describe('Drive sync safety', () => {
     expect(students.map(student => student.id)).toEqual(
       expect.arrayContaining(['local-only', 'remote-only']),
     );
+  });
+
+  it('keeps new receipt numbers above both devices counters and merged receipt serials', async () => {
+    const db = getDB();
+    const localSettings = getDefaultSettings();
+    localSettings.receiptNumbering.nextNumber = 5;
+    await db.settings.put({ id: 'singleton', ...localSettings });
+    await db.receipts.put({
+      id: 'local-receipt',
+      receiptNumber: 'CAG-2026-11-0004',
+      paymentId: 'local-payment',
+      studentId: 'student-1',
+      issuedAt: '2026-11-01T00:00:00.000Z',
+      createdAt: '2026-11-01T00:00:00.000Z',
+      updatedAt: '2026-11-01T00:00:00.000Z',
+    });
+    const remoteSettings = getDefaultSettings();
+    remoteSettings.receiptNumbering.nextNumber = 6;
+    await driveMetaRepository.save({
+      ...folderMetadata,
+      receiptsFileId: 'receipts-file',
+      settingsFileId: 'settings-file',
+    });
+    const remoteReceipt = {
+      id: 'remote-receipt',
+      receiptNumber: 'CAG-2026-11-0008',
+      paymentId: 'remote-payment',
+      studentId: 'student-2',
+      issuedAt: '2026-11-02T00:00:00.000Z',
+      createdAt: '2026-11-02T00:00:00.000Z',
+      updatedAt: '2026-11-02T00:00:00.000Z',
+    };
+    driveClient.downloadJSON.mockImplementation(async (_token: string, fileId: string) => {
+      if (fileId === 'receipts-file') {
+        return {
+          schemaVersion: 1,
+          exportedAt: '2026-11-03T00:00:00.000Z',
+          data: { receipts: [remoteReceipt] },
+        };
+      }
+      if (fileId === 'settings-file') {
+        return {
+          schemaVersion: 1,
+          exportedAt: '2026-11-03T00:00:00.000Z',
+          data: remoteSettings,
+        };
+      }
+      return null;
+    });
+
+    await pullAllFromDrive('token');
+
+    const nextReceipt = await settingsRepository.createReceiptWithNextNumber({
+      paymentId: 'next-payment',
+      studentId: 'student-1',
+    });
+    expect(nextReceipt.receiptNumber).toBe('CAG-2026-11-0009');
+    expect(new Set((await db.receipts.toArray()).map(receipt => receipt.receiptNumber)).size).toBe(3);
   });
 
   it('includes archived students and payments in Drive uploads', async () => {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useStudents, useAllBatches, useSettings } from '../../hooks/useDB';
 import { paymentRepository } from '../../db/repositories/paymentRepository';
-import { receiptRepository } from '../../db/repositories/receiptRepository';
 import { settingsRepository } from '../../db/repositories/settingsRepository';
 import { studentRepository } from '../../db/repositories/studentRepository';
 import { FormRow, Spinner } from '../../components/ui/index';
@@ -260,20 +259,16 @@ export function ReceivePaymentForm({ onComplete, onCancel, prefillStudentId }: R
         taxInclusive: taxCalc ? !!taxSettings?.amountIsInclusive : undefined,
       });
 
-      // 2. Generate receipt number
-      const receiptNumber = await settingsRepository.nextReceiptNumber();
-
-      // 3. Create receipt record
-      const receipt = await receiptRepository.create({
-        receiptNumber,
+      // 2. Allocate a receipt number and insert the receipt atomically
+      const receipt = await settingsRepository.createReceiptWithNextNumber({
         paymentId: payment.id,
         studentId: student.id,
       });
 
-      // 4. Link receipt back to payment
+      // 3. Link receipt back to payment
       await paymentRepository.linkReceipt(payment.id, receipt.id);
 
-      // 5. Fetch full student for result
+      // 4. Fetch full student for result
       const fullStudent = await studentRepository.getById(student.id) ?? student;
 
       onComplete({ payment, receipt, student: fullStudent });

@@ -150,7 +150,7 @@ export async function pullAllFromDrive(token: string): Promise<{ restored: boole
   // deliberately retained so partial/older remote snapshots cannot delete data.
   await db.transaction('rw',
     [db.students, db.batches, db.subjects, db.academicYears,
-    db.payments, db.receipts, db.studentFields, db.paymentFields],
+    db.payments, db.receipts, db.studentFields, db.paymentFields, db.settings],
     async () => {
       if (studentsFile?.students) await mergeRecords(db.students, studentsFile.students);
       if (batchesFile?.batches) await mergeRecords(db.batches, batchesFile.batches);
@@ -170,19 +170,33 @@ export async function pullAllFromDrive(token: string): Promise<{ restored: boole
           schemasFile.paymentFields.map(f => ({ ...f, _store: 'paymentFields' as const })),
         );
       }
-    }
-  );
 
-  if (settingsFile) {
-    // Preserve local onboardingComplete — never overwrite it with Drive value.
-    // This prevents the onboarding loop where Drive has onboardingComplete=false
-    // from an older snapshot and overwrites the local true value.
-    const localSettings = await settingsRepository.get();
-    await settingsRepository.save({
-      ...settingsFile,
-      onboardingComplete: localSettings.onboardingComplete || settingsFile.onboardingComplete,
-    });
-  }
+      const localSettings = await settingsRepository.get();
+      const mergedSettings = settingsFile
+        ? {
+            ...settingsFile,
+            onboardingComplete: localSettings.onboardingComplete || settingsFile.onboardingComplete,
+          }
+        : localSettings;
+      const receipts = await db.receipts.toArray();
+      const highestSerial = receipts.reduce((highest, receipt) => {
+        const serialPart = receipt.receiptNumber.match(/(?:^|-)(\d+)$/)?.[1];
+        const serial = serialPart === undefined ? 0 : Number(serialPart);
+        return Number.isSafeInteger(serial) ? Math.max(highest, serial) : highest;
+      }, 0);
+      await settingsRepository.save({
+        ...mergedSettings,
+        receiptNumbering: {
+          ...mergedSettings.receiptNumbering,
+          nextNumber: Math.max(
+            localSettings.receiptNumbering.nextNumber,
+            settingsFile?.receiptNumbering.nextNumber ?? 0,
+            highestSerial + 1,
+          ),
+        },
+      });
+    },
+  );
 
   const reconciledAt = new Date().toISOString();
   await driveMetaRepository.patch({

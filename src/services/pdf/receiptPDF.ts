@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import type { Receipt, Payment, Student, AppSettings, StudentFieldDefinition } from '../../types';
+import notoSansBold from '../../assets/fonts/NotoSans-Bold.ttf?inline';
+import notoSansRegular from '../../assets/fonts/NotoSans-Regular.ttf?inline';
 
 // ── Receipt data bundle ───────────────────────────────────────────────────────
 
@@ -15,8 +17,38 @@ export interface ReceiptData {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatAmount(amount: number, currency = 'INR') {
-  const symbol = currency === 'INR' ? 'Rs.' : currency;
+  const symbol = currency === 'INR' ? '₹' : currency;
   return `${symbol} ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+}
+
+function addReceiptFonts(doc: jsPDF): void {
+  const addFont = (file: string, dataUrl: string, family: string, style: 'normal' | 'bold') => {
+    doc.addFileToVFS(file, dataUrl.slice(dataUrl.indexOf(',') + 1));
+    doc.addFont(file, family, style);
+  };
+  addFont('NotoSans-Regular.ttf', notoSansRegular, 'NotoSans', 'normal');
+  addFont('NotoSans-Bold.ttf', notoSansBold, 'NotoSans', 'bold');
+}
+
+function setTextFont(doc: jsPDF): void {
+  const style = doc.getFont().fontStyle === 'bold' ? 'bold' : 'normal';
+  doc.setFont('NotoSans', style);
+}
+
+function writeText(
+  doc: jsPDF,
+  text: string | string[],
+  x: number,
+  y: number,
+  options?: { align?: 'left' | 'center' | 'right' | 'justify'; maxWidth?: number },
+): void {
+  setTextFont(doc);
+  doc.text(text, x, y, options);
+}
+
+function splitTextToSize(doc: jsPDF, text: string, maxWidth: number): string[] {
+  setTextFont(doc);
+  return doc.splitTextToSize(text, maxWidth);
 }
 
 function formatDate(iso: string) {
@@ -56,6 +88,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
     format: 'a5',        // A5 is a common receipt size — compact and printable
     orientation: 'portrait',
   });
+  addReceiptFonts(doc);
 
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
@@ -81,18 +114,18 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   doc.setFontSize(14);
   doc.setTextColor(243, 240, 238);
   const bizName = settings.business.businessName || 'COLLECT-AG';
-  doc.text(bizName, margin, 14);
+  writeText(doc, splitTextToSize(doc, bizName, contentW * 0.62), margin, 14);
 
   // Receipt number label
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...signalRGB);
-  doc.text('PAYMENT RECEIPT', pageW - margin, 10, { align: 'right' });
+  writeText(doc, 'PAYMENT RECEIPT', pageW - margin, 10, { align: 'right' });
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(243, 240, 238);
-  doc.text(receipt.receiptNumber, pageW - margin, 16, { align: 'right' });
+  writeText(doc, receipt.receiptNumber, pageW - margin, 16, { align: 'right' });
 
   // Business sub-info
   doc.setFont('helvetica', 'normal');
@@ -102,9 +135,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   if (settings.business.phone) subLines.push(settings.business.phone);
   if (settings.business.email) subLines.push(settings.business.email);
   if (settings.business.gstin) subLines.push(`GSTIN: ${settings.business.gstin}`);
-  if (subLines.length > 0) doc.text(subLines.join('  |  '), margin, 22);
+  if (subLines.length > 0) writeText(doc, subLines.join('  |  '), margin, 22);
   if (settings.business.address) {
-    doc.text(settings.business.address, margin, 28, { maxWidth: contentW * 0.65 });
+    writeText(doc, settings.business.address, margin, 28, { maxWidth: contentW * 0.65 });
   }
 
   y = 44;
@@ -113,8 +146,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(...slateRGB);
-  doc.text(`Date: ${formatDate(payment.paymentDate)}`, margin, y);
-  doc.text(`Issued: ${formatDate(receipt.issuedAt)}`, pageW - margin, y, { align: 'right' });
+  writeText(doc, `Date: ${formatDate(payment.paymentDate)}`, margin, y);
+  writeText(doc, `Issued: ${formatDate(receipt.issuedAt)}`, pageW - margin, y, { align: 'right' });
   y += 8;
 
   // ── Divider ──────────────────────────────────────────────────────────────────
@@ -127,15 +160,16 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(...slateRGB);
-  doc.text('MEMBER', margin, y);
+  writeText(doc, 'MEMBER', margin, y);
   y += 4;
 
   const studentName = String(student.values['student_name'] ?? 'Unknown');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(...inkRGB);
-  doc.text(studentName, margin, y);
-  y += 6;
+  const studentNameLines = splitTextToSize(doc, studentName, contentW);
+  writeText(doc, studentNameLines, margin, y);
+  y += studentNameLines.length * 5;
 
   // Receipt-visible student fields
   const receiptFields = fields.filter(f => f.enabled && f.showOnReceipt && f.id !== 'student_name');
@@ -147,8 +181,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
       .map(f => `${f.label}: ${getStudentFieldValue(student, fields, f.id)}`)
       .filter(s => !s.endsWith(': '));
     if (detailParts.length > 0) {
-      doc.text(detailParts.join('   '), margin, y, { maxWidth: contentW });
-      y += 5;
+      const detailLines = splitTextToSize(doc, detailParts.join('   '), contentW);
+      writeText(doc, detailLines, margin, y);
+      y += detailLines.length * 4;
     }
   }
 
@@ -156,8 +191,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...slateRGB);
-    doc.text(`Batch: ${batchName}`, margin, y);
-    y += 5;
+    const batchLines = splitTextToSize(doc, `Batch: ${batchName}`, contentW);
+    writeText(doc, batchLines, margin, y);
+    y += batchLines.length * 4;
   }
 
   y += 2;
@@ -169,7 +205,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(7);
   doc.setTextColor(...slateRGB);
-  doc.text('PAYMENT DETAILS', margin, y);
+  writeText(doc, 'PAYMENT DETAILS', margin, y);
   y += 5;
 
   const details: [string, string][] = [
@@ -183,10 +219,11 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   doc.setFontSize(9);
   for (const [label, value] of details) {
     doc.setTextColor(...slateRGB);
-    doc.text(label, margin, y);
+    writeText(doc, label, margin, y);
     doc.setTextColor(...inkRGB);
-    doc.text(value, pageW - margin, y, { align: 'right' });
-    y += 6;
+    const valueLines = splitTextToSize(doc, value, contentW * 0.62);
+    writeText(doc, valueLines, pageW - margin, y, { align: 'right' });
+    y += Math.max(1, valueLines.length) * 6;
   }
 
   y += 2;
@@ -213,13 +250,13 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...slateRGB);
-    doc.text('SUBTOTAL', margin + 5, ty);
-    doc.text(formatAmount(baseAmount, currency), pageW - margin - 5, ty, { align: 'right' });
+    writeText(doc, 'SUBTOTAL', margin + 5, ty);
+    writeText(doc, formatAmount(baseAmount, currency), pageW - margin - 5, ty, { align: 'right' });
     ty += lineRowH;
 
     for (const line of taxLines) {
-      doc.text(`${line.name} (${line.rate}%)`, margin + 5, ty);
-      doc.text(formatAmount(line.amount, currency), pageW - margin - 5, ty, { align: 'right' });
+      writeText(doc, `${line.name} (${line.rate}%)`, margin + 5, ty);
+      writeText(doc, formatAmount(line.amount, currency), pageW - margin - 5, ty, { align: 'right' });
       ty += lineRowH;
     }
 
@@ -227,18 +264,18 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.setTextColor(...inkRGB);
-    doc.text('TOTAL PAID', margin + 5, ty);
+    writeText(doc, 'TOTAL PAID', margin + 5, ty);
     doc.setFontSize(14);
-    doc.text(formatAmount(totalAmount, currency), pageW - margin - 5, ty + 2, { align: 'right' });
+    writeText(doc, formatAmount(totalAmount, currency), pageW - margin - 5, ty + 2, { align: 'right' });
   } else {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(...slateRGB);
-    doc.text('AMOUNT PAID', margin + 5, y + 7);
+    writeText(doc, 'AMOUNT PAID', margin + 5, y + 7);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(18);
     doc.setTextColor(...inkRGB);
-    doc.text(formatAmount(payment.amount, currency), pageW - margin - 5, y + 14, { align: 'right' });
+    writeText(doc, formatAmount(payment.amount, currency), pageW - margin - 5, y + 14, { align: 'right' });
   }
 
   y += boxH + 6;
@@ -252,8 +289,8 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<jsPDF> {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(...slateRGB);
-  doc.text('Thank you for your payment.', margin, footerY - 2);
-  doc.text(`COLLECT-AG · ${receipt.receiptNumber}`, pageW - margin, footerY - 2, { align: 'right' });
+  writeText(doc, 'Thank you for your payment.', margin, footerY - 2);
+  writeText(doc, `COLLECT-AG · ${receipt.receiptNumber}`, pageW - margin, footerY - 2, { align: 'right' });
 
   return doc;
 }

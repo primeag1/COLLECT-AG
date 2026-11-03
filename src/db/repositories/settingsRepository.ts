@@ -1,8 +1,15 @@
-import { getDB, type StoredSettings } from '../indexeddb/database';
+import { getDB, generateId, now, type StoredSettings } from '../indexeddb/database';
 import { getDefaultSettings } from '../indexeddb/defaultSettings';
-import type { AppSettings } from '../../types';
+import type { AppSettings, Receipt } from '../../types';
 
 const SINGLETON_ID = 'singleton' as const;
+
+export interface ReceiptCreationInput {
+  paymentId: string;
+  studentId: string;
+  templateId?: string;
+  pdfDriveFileId?: string;
+}
 
 export const settingsRepository = {
 
@@ -43,30 +50,45 @@ export const settingsRepository = {
     await this.patch({ onboardingComplete: true });
   },
 
-  /** Increment and return the next receipt number, updating the stored counter */
-  async nextReceiptNumber(): Promise<string> {
-    const settings = await this.get();
-    const { prefix, includeYear, includeMonth, padding, nextNumber } = settings.receiptNumbering;
-    const d = new Date();
-    const year  = d.getFullYear().toString();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const serial = String(nextNumber).padStart(padding, '0');
+  /** Allocate the next available number and insert its receipt atomically. */
+  async createReceiptWithNextNumber(input: ReceiptCreationInput): Promise<Receipt> {
+    const db = getDB();
+    return db.transaction('rw', [db.settings, db.receipts], async () => {
+      const settings = await this.get();
+      const { prefix, includeYear, includeMonth, padding } = settings.receiptNumbering;
+      const date = new Date();
+      const parts = [prefix];
+      if (includeYear) parts.push(date.getFullYear().toString());
+      if (includeMonth) parts.push(String(date.getMonth() + 1).padStart(2, '0'));
 
-    let parts = [prefix];
-    if (includeYear)  parts.push(year);
-    if (includeMonth) parts.push(month);
-    parts.push(serial);
+      let serial = settings.receiptNumbering.nextNumber;
+      let existingReceipt: Receipt | undefined;
+      let receiptNumber = '';
+      do {
+        receiptNumber = [...parts, String(serial).padStart(padding, '0')].join('-');
+        existingReceipt = await db.receipts.where('receiptNumber').equals(receiptNumber).first();
+        if (existingReceipt) serial += 1;
+      } while (existingReceipt);
 
-    const receiptNumber = parts.join('-');
+      const timestamp = now();
+      const receipt: Receipt = {
+        id: generateId('rec'),
+        receiptNumber,
+        paymentId: input.paymentId,
+        studentId: input.studentId,
+        templateId: input.templateId,
+        pdfDriveFileId: input.pdfDriveFileId,
+        issuedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      };
 
-    // Increment counter
-    await this.patch({
-      receiptNumbering: {
-        ...settings.receiptNumbering,
-        nextNumber: nextNumber + 1,
-      },
+      await this.save({
+        ...settings,
+        receiptNumbering: { ...settings.receiptNumbering, nextNumber: serial + 1 },
+      });
+      await db.receipts.add(receipt);
+      return receipt;
     });
-
-    return receiptNumber;
   },
 };
