@@ -5,7 +5,7 @@
  * we search Drive by name inside the Data folder and cache the found IDs.
  */
 
-import { driveClient } from '../google/driveClient';
+import { driveClient, DriveAPIError } from '../google/driveClient';
 import { driveMetaRepository } from '../../db/repositories/syncRepository';
 import { SCHEMA_VERSION } from '../../config/index';
 
@@ -42,6 +42,7 @@ const FILE_ID_MAP: Record<DataFileKey, keyof import('../../types').DriveMetadata
   schemas:   'schemasFileId',
   settings:  'settingsFileId',
 };
+const backupsFolderPromises = new Map<string, Promise<string>>();
 
 /**
  * Search Drive by filename inside the Data folder.
@@ -52,16 +53,77 @@ async function searchFileByName(
   fileName: string,
   parentFolderId: string,
 ): Promise<string | null> {
-  try {
-    const files = await driveClient.listFiles(
-      token,
-      `name='${fileName}' and '${parentFolderId}' in parents and trashed=false`,
-      'files(id,name)',
-    );
-    return files.length > 0 ? files[0].id : null;
-  } catch {
-    return null;
+  const files = await driveClient.listFiles(
+    token,
+    `name='${fileName}' and '${parentFolderId}' in parents and trashed=false`,
+    'files(id,name,modifiedTime)',
+  );
+  return files.length > 0 ? files[0].id : null;
+}
+
+async function getOrCreateBackupsFolder(token: string, dataFolderId: string): Promise<string> {
+  const cached = await driveMetaRepository.get();
+  if (cached.backupsFolderId) return cached.backupsFolderId;
+
+  let folderPromise = backupsFolderPromises.get(dataFolderId);
+  if (!folderPromise) {
+    folderPromise = (async () => {
+      const query = `name='Backups' and mimeType='application/vnd.google-apps.folder' and '${dataFolderId}' in parents and trashed=false`;
+      const folders = await driveClient.listFiles(token, query, 'files(id,name)');
+      const folderId = folders[0]?.id ??
+        (await driveClient.createFolder(token, 'Backups', dataFolderId)).id;
+      await driveMetaRepository.patch({ backupsFolderId: folderId });
+      return folderId;
+    })();
+    backupsFolderPromises.set(dataFolderId, folderPromise);
+    folderPromise.catch(() => backupsFolderPromises.delete(dataFolderId));
   }
+  return folderPromise;
+}
+
+async function backupExistingFile(
+  token: string,
+  fileName: string,
+  fileId: string,
+  dataFolderId: string,
+): Promise<void> {
+  const previousContent = await driveClient.downloadJSON<unknown>(token, fileId);
+  const backupsFolderId = await getOrCreateBackupsFolder(token, dataFolderId);
+  const backupName = `${fileName.slice(0, -'.json'.length)}-${new Date().toISOString()}.json`;
+  await driveClient.uploadJSON(token, backupName, previousContent, backupsFolderId);
+
+  const prefix = `${fileName.slice(0, -'.json'.length)}-`;
+  const backups = await driveClient.listFiles(
+    token,
+    `'${backupsFolderId}' in parents and trashed=false`,
+    'files(id,name,modifiedTime)',
+  );
+  const matchingBackups = backups
+    .filter(file => file.name.startsWith(prefix) && file.name.endsWith('.json'))
+    .sort((a, b) => {
+      const aTime = a.modifiedTime ? Date.parse(a.modifiedTime) : Number.NaN;
+      const bTime = b.modifiedTime ? Date.parse(b.modifiedTime) : Number.NaN;
+      if (Number.isFinite(aTime) && Number.isFinite(bTime)) return bTime - aTime;
+      return b.name.localeCompare(a.name);
+    });
+  await Promise.all(
+    matchingBackups.slice(10).map(file => driveClient.trashFile(token, file.id)),
+  );
+}
+
+export async function getDriveDataFileModifiedTime(
+  token: string,
+  key: DataFileKey,
+): Promise<string | undefined> {
+  const meta = await driveMetaRepository.get();
+  const fileIdKey = FILE_ID_MAP[key];
+  let fileId = meta[fileIdKey] as string | undefined;
+  if (!fileId && meta.dataFolderId) {
+    fileId = (await searchFileByName(token, DATA_FILES[key], meta.dataFolderId)) ?? undefined;
+    if (fileId) await driveMetaRepository.patch({ [fileIdKey]: fileId });
+  }
+  if (!fileId) return undefined;
+  return (await driveClient.getFile(token, fileId)).modifiedTime;
 }
 
 export async function writeDriveDataFile<T>(
@@ -83,6 +145,10 @@ export async function writeDriveDataFile<T>(
       existingFileId = found;
       await driveMetaRepository.patch({ [fileIdKey]: found });
     }
+  }
+
+  if (existingFileId) {
+    await backupExistingFile(token, DATA_FILES[key], existingFileId, dataFolderId);
   }
 
   const envelope = wrap(data);
@@ -121,7 +187,7 @@ export async function readDriveDataFile<T>(
     const envelope = await driveClient.downloadJSON<DataEnvelope<T>>(token, fileId);
     return envelope.data ?? null;
   } catch (err: unknown) {
-    if (err instanceof Error && (err.message.includes('404') || err.message.includes('403'))) {
+    if (err instanceof DriveAPIError && err.code === 404) {
       await driveMetaRepository.patch({ [fileIdKey]: undefined });
       return null;
     }

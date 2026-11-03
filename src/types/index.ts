@@ -283,6 +283,7 @@ export interface DriveMetadata {
   dataFolderId?: string;
   receiptsFolderId?: string;
   exportsFolderId?: string;
+  backupsFolderId?: string;
   studentsFileId?: string;
   batchesFileId?: string;
   subjectsFileId?: string;
@@ -291,6 +292,7 @@ export interface DriveMetadata {
   schemasFileId?: string;
   settingsFileId?: string;
   lastRemoteSyncAt?: string;
+  remoteReconciledAt?: string;
 }
 
 // ── Tax Settings ─────────────────────────────────────────────────────────────

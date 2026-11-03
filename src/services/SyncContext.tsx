@@ -121,7 +121,14 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
     setSyncState('syncing');
     setErrorMessage(null);
 
+    let reconciliationRequired = false;
     try {
+      const driveMeta = await driveMetaRepository.get();
+      if (!driveMeta.remoteReconciledAt) {
+        reconciliationRequired = true;
+        throw new Error('Sync paused: restore from Google Drive first so this device cannot overwrite existing data.');
+      }
+
       try {
         await pushAllToDrive(token);
       } catch (err) {
@@ -160,7 +167,7 @@ export function SyncProvider({ children }: { children: React.ReactNode }) {
         setSyncState('error');
 
         const attempt = retryAttempt;
-        if (attempt < SYNC_RETRY_MAX) {
+        if (!reconciliationRequired && attempt < SYNC_RETRY_MAX) {
           const delay = retryDelay(attempt);
           setRetryAttempt(a => a + 1);
           retryTimerRef.current = setTimeout(() => {

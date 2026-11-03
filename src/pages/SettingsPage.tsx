@@ -7,6 +7,7 @@ import { SyncStatusBar } from '../components/SyncStatusBar';
 import { FieldBuilder } from '../features/settings/FieldBuilder';
 import { PageHeader, SectionCard, FormRow, Spinner, Toggle } from '../components/ui/index';
 import type { AppSettings, PaymentMode } from '../types';
+import { SCHEMA_VERSION } from '../config/index';
 import { normalizeDefaultRateIds } from '../utils/tax';
 import {
   DEFAULT_WA_TEMPLATE as DEFAULT_TEMPLATE,
@@ -736,21 +737,90 @@ function AccountTab() {
   const [confirm, setConfirm] = useState('');
   const [showConfirm, setShowConfirm] = useState(false);
   const [msg, setMsg] = useState('');
+  const [backupMsg, setBackupMsg] = useState('');
+  const [downloadingBackup, setDownloadingBackup] = useState(false);
+
+  const handleDownloadBackup = async () => {
+    setDownloadingBackup(true);
+    setBackupMsg('');
+    try {
+      const { getDB } = await import('../db/indexeddb/database');
+      const db = getDB();
+      const [
+        students, batches, subjects, academicYears, payments, receipts,
+        feeSchedules, studentFields, paymentFields, receiptTemplates, settings,
+      ] = await Promise.all([
+        db.students.toArray(),
+        db.batches.toArray(),
+        db.subjects.toArray(),
+        db.academicYears.toArray(),
+        db.payments.toArray(),
+        db.receipts.toArray(),
+        db.feeSchedules.toArray(),
+        db.studentFields.toArray(),
+        db.paymentFields.toArray(),
+        db.receiptTemplates.toArray(),
+        db.settings.get('singleton'),
+      ]);
+      const payload = {
+        schemaVersion: SCHEMA_VERSION,
+        exportedAt: new Date().toISOString(),
+        data: {
+          students, batches, subjects, academicYears, payments, receipts,
+          feeSchedules, studentFields, paymentFields, receiptTemplates, settings,
+        },
+      };
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }),
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `collect-ag-backup-${new Date().toISOString().replaceAll(':', '-')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setBackupMsg('Backup downloaded.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setBackupMsg(`Backup download failed: ${message}`);
+    } finally {
+      setDownloadingBackup(false);
+    }
+  };
 
   const handleDeleteAll = async () => {
     if (confirm !== 'DELETE') return;
     setDeleting(true);
     try {
-      // Delete the COLLECT-AG root folder from Drive
       const freshToken = await ensureFreshToken();
-      if (freshToken) {
-        const { driveMetaRepository } = await import('../db/repositories/syncRepository');
-        const { driveClient } = await import('../services/google/driveClient');
-        const meta = await driveMetaRepository.get();
-        if (meta.applicationRootFolderId) {
-          await driveClient.deleteFile(freshToken, meta.applicationRootFolderId);
-        }
+      if (!freshToken) {
+        throw new Error('Google Drive access is required. Your local data was not deleted.');
       }
+
+      const { driveMetaRepository } = await import('../db/repositories/syncRepository');
+      const { driveClient } = await import('../services/google/driveClient');
+      const meta = await driveMetaRepository.get();
+      let rootFolderIds = meta.applicationRootFolderId
+        ? [meta.applicationRootFolderId]
+        : [];
+      if (rootFolderIds.length === 0) {
+        let folders = await driveClient.listFiles(
+          freshToken,
+          "name='COLLECT-AG' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+          'files(id,name)',
+        );
+        if (folders.length === 0) {
+          folders = await driveClient.listFiles(
+            freshToken,
+            "name='FeeLedger' and mimeType='application/vnd.google-apps.folder' and trashed=false",
+            'files(id,name)',
+          );
+        }
+        rootFolderIds = folders.map(folder => folder.id);
+      }
+      await Promise.all(rootFolderIds.map(folderId => driveClient.trashFile(freshToken, folderId)));
+
       // Clear local IndexedDB
       const { getDB } = await import('../db/indexeddb/database');
       const db = getDB();
@@ -763,13 +833,15 @@ function AccountTab() {
       // Clear localStorage
       localStorage.removeItem('fl_user');
       localStorage.removeItem('fl_token');
+      localStorage.removeItem('fl_token_expires_at');
       localStorage.removeItem('fl_pwa_dismissed');
       localStorage.removeItem('fl_wa_template');
 
       signOut();
       navigate('/', { replace: true });
-    } catch {
-      setMsg('COLLECT-AG could not delete your data. Please try again or delete the COLLECT-AG folder from Google Drive manually.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setMsg(`COLLECT-AG could not delete your data. ${message}`);
       setDeleting(false);
     }
   };
@@ -792,12 +864,11 @@ function AccountTab() {
         </button>
       </SectionCard>
 
-      <SectionCard title="Delete All Data" subtitle="Permanently remove your data from Google Drive and sign out">
+      <SectionCard title="Delete All Data" subtitle="Move your Drive data to Trash, clear this device, and sign out">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <p style={{ fontSize: 14, color: 'var(--color-charcoal)', lineHeight: 1.7 }}>
-            This will permanently delete the <strong>COLLECT-AG</strong> folder from your Google Drive,
-            removing all your members, payments, receipts, and settings.
-            This action cannot be undone.
+            Download a JSON backup before deleting if you want to keep a copy. Delete All moves the
+            <strong> COLLECT-AG</strong> folder to your Google Drive Trash and clears this device.
           </p>
           <p style={{ fontSize: 13, color: 'var(--color-slate)', lineHeight: 1.6 }}>
             Note: This removes your data from Drive and signs you out of COLLECT-AG.
@@ -809,6 +880,14 @@ function AccountTab() {
             and remove COLLECT-AG (the Google consent screen may still show its previous name).
           </p>
 
+          <div>
+            <button className="btn-secondary" onClick={handleDownloadBackup} disabled={downloadingBackup}
+              style={{ fontSize: 14, padding: '9px 20px' }}>
+              {downloadingBackup ? 'Preparing backup…' : 'Download backup (JSON)'}
+            </button>
+            {backupMsg && <p role="status" style={{ fontSize: 12, color: backupMsg.startsWith('Backup download failed') ? '#b91c1c' : '#15803d', marginTop: 8 }}>{backupMsg}</p>}
+          </div>
+
           {!showConfirm ? (
             <button onClick={() => setShowConfirm(true)}
               style={{ display: 'inline-flex', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 10, padding: '10px 20px', cursor: 'pointer', fontSize: 14, color: '#b91c1c', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
@@ -817,7 +896,7 @@ function AccountTab() {
           ) : (
             <div style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 14, padding: 20 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c', marginBottom: 12 }}>
-                Type DELETE to confirm permanent deletion:
+                Type DELETE to move the Drive folder to Trash and clear this device:
               </p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <input
@@ -827,7 +906,7 @@ function AccountTab() {
                 />
                 <button onClick={handleDeleteAll} disabled={confirm !== 'DELETE' || deleting}
                   style={{ background: confirm === 'DELETE' ? '#b91c1c' : 'var(--color-dust)', color: 'white', border: 'none', borderRadius: 8, padding: '9px 18px', cursor: confirm === 'DELETE' ? 'pointer' : 'not-allowed', fontSize: 14, fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
-                  {deleting ? 'Deleting…' : 'Delete Everything'}
+                  {deleting ? 'Deleting…' : 'Move to Trash & Delete'}
                 </button>
                 <button onClick={() => { setShowConfirm(false); setConfirm(''); }}
                   style={{ background: 'none', border: '1px solid var(--color-dust)', borderRadius: 8, padding: '9px 14px', cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font-sans)', color: 'var(--color-slate)' }}>

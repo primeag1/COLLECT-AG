@@ -6,6 +6,8 @@
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
+const MAX_REQUEST_ATTEMPTS = 4;
+const RETRY_BASE_DELAY_MS = 500;
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,18 +31,20 @@ export interface DriveError {
 export class DriveAPIError extends Error {
   code: number;
   status?: string;
+  retryAfter?: string | null;
 
-  constructor(message: string, code: number, status?: string) {
+  constructor(message: string, code: number, status?: string, retryAfter?: string | null) {
     super(message);
     this.name = 'DriveAPIError';
     this.code = code;
     this.status = status;
+    this.retryAfter = retryAfter;
   }
 }
 
 // ── Request helper ────────────────────────────────────────────────────────────
 
-async function driveRequest<T>(
+async function driveRequestOnce<T>(
   url: string,
   options: RequestInit,
   token: string,
@@ -57,7 +61,12 @@ async function driveRequest<T>(
     let errorBody: { error?: DriveError } = {};
     try { errorBody = await response.json(); } catch { /* ignore */ }
     const msg = errorBody?.error?.message ?? `Drive API error ${response.status}`;
-    throw new DriveAPIError(msg, response.status, errorBody?.error?.status);
+    throw new DriveAPIError(
+      msg,
+      response.status,
+      errorBody?.error?.status,
+      response.headers.get('Retry-After'),
+    );
   }
 
   // 204 No Content
@@ -67,6 +76,35 @@ async function driveRequest<T>(
 }
 
 // ── Drive API methods ─────────────────────────────────────────────────────────
+
+async function driveRequest<T>(
+  url: string,
+  options: RequestInit,
+  token: string,
+): Promise<T> {
+  for (let attempt = 0; attempt < MAX_REQUEST_ATTEMPTS; attempt += 1) {
+    try {
+      return await driveRequestOnce<T>(url, options, token);
+    } catch (error) {
+      if (!(error instanceof DriveAPIError) ||
+          (error.code !== 429 && (error.code < 500 || error.code > 599)) ||
+          attempt === MAX_REQUEST_ATTEMPTS - 1) {
+        throw error;
+      }
+
+      const retryAfter = error.retryAfter;
+      const seconds = retryAfter ? Number(retryAfter) : NaN;
+      const retryAt = retryAfter ? Date.parse(retryAfter) : NaN;
+      const waitMs = Number.isFinite(seconds)
+        ? Math.max(0, seconds * 1000)
+        : !Number.isNaN(retryAt)
+          ? Math.max(0, retryAt - Date.now())
+          : RETRY_BASE_DELAY_MS * 2 ** attempt * (0.5 + Math.random());
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+    }
+  }
+  throw new Error('Drive request exhausted its retry attempts.');
+}
 
 export const driveClient = {
 
@@ -232,6 +270,21 @@ export const driveClient = {
     await driveRequest<void>(
       `${DRIVE_API}/files/${fileId}`,
       { method: 'DELETE' },
+      token,
+    );
+  },
+
+  /**
+   * Move a Drive file or folder to trash without permanently deleting it.
+   */
+  async trashFile(token: string, fileId: string): Promise<void> {
+    await driveRequest<void>(
+      `${DRIVE_API}/files/${fileId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trashed: true }),
+      },
       token,
     );
   },

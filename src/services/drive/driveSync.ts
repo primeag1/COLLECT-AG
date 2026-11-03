@@ -10,7 +10,10 @@
  */
 
 import { ensureDriveFolders, getReceiptsYearFolder } from './driveFolders';
-import { writeDriveDataFile, readDriveDataFile, uploadReceiptPDF } from './driveData';
+import {
+  writeDriveDataFile, readDriveDataFile, uploadReceiptPDF,
+  getDriveDataFileModifiedTime, DATA_FILES,
+} from './driveData';
 import { driveMetaRepository } from '../../db/repositories/syncRepository';
 import { getDB } from '../../db/indexeddb/database';
 import { settingsRepository } from '../../db/repositories/settingsRepository';
@@ -30,6 +33,21 @@ interface PaymentsFile   { payments: Payment[] }
 interface ReceiptsFile   { receipts: Receipt[] }
 interface SchemasFile    { studentFields: StudentFieldDefinition[]; paymentFields: PaymentFieldDefinition[] }
 
+async function mergeRecords<T extends { id: string; updatedAt: string }>(
+  table: {
+    get: (id: string) => Promise<T | undefined>;
+    put: (record: T) => Promise<unknown>;
+  },
+  remoteRecords: T[],
+): Promise<void> {
+  for (const remoteRecord of remoteRecords) {
+    const localRecord = await table.get(remoteRecord.id);
+    if (!localRecord || remoteRecord.updatedAt > localRecord.updatedAt) {
+      await table.put(remoteRecord);
+    }
+  }
+}
+
 // ── Push (local → Drive) ──────────────────────────────────────────────────────
 
 /**
@@ -37,10 +55,31 @@ interface SchemasFile    { studentFields: StudentFieldDefinition[]; paymentField
  * Called after any significant change (or on a timer).
  */
 export async function pushAllToDrive(token: string): Promise<void> {
-  const db = getDB();
+  const initialMeta = await driveMetaRepository.get();
+  if (!initialMeta.remoteReconciledAt) {
+    throw new Error('Sync paused: restore from Google Drive first so this device cannot overwrite existing data.');
+  }
 
   // Ensure folder structure exists
   await ensureDriveFolders(token);
+
+  const meta = await driveMetaRepository.get();
+  const remoteModifiedTimes = await Promise.all(
+    (Object.keys(DATA_FILES) as Array<keyof typeof DATA_FILES>).map(key =>
+      getDriveDataFileModifiedTime(token, key)
+    ),
+  );
+  const parsedLastRemoteSyncTime = meta.lastRemoteSyncAt
+    ? Date.parse(meta.lastRemoteSyncAt)
+    : Number.NEGATIVE_INFINITY;
+  const lastRemoteSyncTime = Number.isNaN(parsedLastRemoteSyncTime)
+    ? Number.NEGATIVE_INFINITY
+    : parsedLastRemoteSyncTime;
+  if (remoteModifiedTimes.some(time => time && Date.parse(time) > lastRemoteSyncTime)) {
+    await pullAllFromDrive(token);
+  }
+
+  const db = getDB();
 
   // Read all local data in parallel
   const [
@@ -51,11 +90,11 @@ export async function pushAllToDrive(token: string): Promise<void> {
     studentFields, paymentFields,
     settings,
   ] = await Promise.all([
-    db.students.filter(s => !s.archivedAt).toArray(),
+    db.students.toArray(),
     db.batches.toArray(),
     db.subjects.toArray(),
     db.academicYears.toArray(),
-    db.payments.filter(p => !p.archivedAt).toArray(),
+    db.payments.toArray(),
     db.receipts.toArray(),
     db.studentFields.toArray().then(rows => rows.map(({ _store: _sf, ...f }) => { void _sf; return f as StudentFieldDefinition; })),
     db.paymentFields.toArray().then(rows => rows.map(({ _store: _pf, ...f }) => { void _pf; return f as PaymentFieldDefinition; })),
@@ -73,7 +112,16 @@ export async function pushAllToDrive(token: string): Promise<void> {
   ]);
 
   // Record sync time
-  await driveMetaRepository.patch({ lastRemoteSyncAt: new Date().toISOString() });
+  const writtenModifiedTimes = await Promise.all(
+    (Object.keys(DATA_FILES) as Array<keyof typeof DATA_FILES>).map(key =>
+      getDriveDataFileModifiedTime(token, key)
+    ),
+  );
+  const latestRemoteTime = writtenModifiedTimes.reduce((latest, time) => {
+    const timestamp = time ? Date.parse(time) : 0;
+    return Number.isNaN(timestamp) ? latest : Math.max(latest, timestamp);
+  }, Date.now());
+  await driveMetaRepository.patch({ lastRemoteSyncAt: new Date(latestRemoteTime).toISOString() });
 }
 
 // ── Pull (Drive → local) ──────────────────────────────────────────────────────
@@ -97,42 +145,28 @@ export async function pullAllFromDrive(token: string): Promise<{ restored: boole
       readDriveDataFile<AppSettings>(token, 'settings'),
     ]);
 
-  // If no data exists on Drive yet, nothing to restore
-  if (!studentsFile && !paymentsFile && !settingsFile) {
-    return { restored: false };
-  }
-
-  // Write into IndexedDB (bulkPut = upsert, won't duplicate)
+  // Merge record stores by id and updatedAt. Rows missing from Drive are
+  // deliberately retained so partial/older remote snapshots cannot delete data.
   await db.transaction('rw',
     [db.students, db.batches, db.subjects, db.academicYears,
     db.payments, db.receipts, db.studentFields, db.paymentFields],
     async () => {
-      if (studentsFile?.students?.length) {
-        await db.students.bulkPut(studentsFile.students);
-      }
-      if (batchesFile?.batches?.length) {
-        await db.batches.bulkPut(batchesFile.batches);
-      }
-      if (batchesFile?.subjects?.length) {
-        await db.subjects.bulkPut(batchesFile.subjects);
-      }
-      if (batchesFile?.academicYears?.length) {
-        await db.academicYears.bulkPut(batchesFile.academicYears);
-      }
-      if (paymentsFile?.payments?.length) {
-        await db.payments.bulkPut(paymentsFile.payments);
-      }
-      if (receiptsFile?.receipts?.length) {
-        await db.receipts.bulkPut(receiptsFile.receipts);
-      }
-      if (schemasFile?.studentFields?.length) {
-        await db.studentFields.bulkPut(
-          schemasFile.studentFields.map(f => ({ ...f, _store: 'studentFields' as const }))
+      if (studentsFile?.students) await mergeRecords(db.students, studentsFile.students);
+      if (batchesFile?.batches) await mergeRecords(db.batches, batchesFile.batches);
+      if (batchesFile?.subjects) await mergeRecords(db.subjects, batchesFile.subjects);
+      if (batchesFile?.academicYears) await mergeRecords(db.academicYears, batchesFile.academicYears);
+      if (paymentsFile?.payments) await mergeRecords(db.payments, paymentsFile.payments);
+      if (receiptsFile?.receipts) await mergeRecords(db.receipts, receiptsFile.receipts);
+      if (schemasFile?.studentFields) {
+        await mergeRecords(
+          db.studentFields,
+          schemasFile.studentFields.map(f => ({ ...f, _store: 'studentFields' as const })),
         );
       }
-      if (schemasFile?.paymentFields?.length) {
-        await db.paymentFields.bulkPut(
-          schemasFile.paymentFields.map(f => ({ ...f, _store: 'paymentFields' as const }))
+      if (schemasFile?.paymentFields) {
+        await mergeRecords(
+          db.paymentFields,
+          schemasFile.paymentFields.map(f => ({ ...f, _store: 'paymentFields' as const })),
         );
       }
     }
@@ -149,8 +183,16 @@ export async function pullAllFromDrive(token: string): Promise<{ restored: boole
     });
   }
 
-  await driveMetaRepository.patch({ lastRemoteSyncAt: new Date().toISOString() });
-  return { restored: true };
+  const reconciledAt = new Date().toISOString();
+  await driveMetaRepository.patch({
+    lastRemoteSyncAt: reconciledAt,
+    remoteReconciledAt: reconciledAt,
+  });
+  return {
+    restored: Boolean(
+      studentsFile || batchesFile || paymentsFile || receiptsFile || schemasFile || settingsFile,
+    ),
+  };
 }
 
 // ── Receipt PDF upload ────────────────────────────────────────────────────────
