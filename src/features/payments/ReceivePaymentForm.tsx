@@ -178,10 +178,9 @@ export function ReceivePaymentForm({ onComplete, onCancel, prefillStudentId }: R
   useEffect(() => {
     if (taxDefaultsAppliedRef.current) return;
     if (!settings) return;
-    const defaults = getDefaultTaxRates(taxSettings);
+    const defaults = getDefaultTaxRates(settings.taxSettings);
     setSelectedTaxIds(defaults.map(r => r.id));
     taxDefaultsAppliedRef.current = true;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings]);
 
   const toggleTaxRate = (id: string) =>
@@ -197,8 +196,9 @@ export function ReceivePaymentForm({ onComplete, onCancel, prefillStudentId }: R
   }, [amount, taxEnabled, selectedTaxRateObjs, taxSettings?.amountIsInclusive]);
 
   useEffect(() => {
-    if (paymentModes.length > 0 && !paymentMode) {
-      setPaymentMode(paymentModes[0].id);
+    const firstPaymentMode = paymentModes[0];
+    if (firstPaymentMode && !paymentMode) {
+      setPaymentMode(firstPaymentMode.id);
     }
   }, [paymentModes, paymentMode]);
 

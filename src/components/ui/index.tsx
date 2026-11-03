@@ -156,7 +156,7 @@ interface BadgeProps {
 }
 
 export function Badge({ children, variant = 'default' }: BadgeProps) {
-  const colors: Record<string, { bg: string; color: string }> = {
+  const colors: Record<NonNullable<BadgeProps['variant']>, { bg: string; color: string }> = {
     default: { bg: 'var(--color-bone)',           color: 'var(--color-slate)' },
     success: { bg: 'rgba(34,197,94,0.12)',        color: '#15803d' },
     warning: { bg: 'rgba(243,115,56,0.12)',       color: 'var(--color-signal)' },

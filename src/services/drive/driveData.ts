@@ -59,7 +59,7 @@ async function searchFileByName(
     `name='${escapeDriveQuery(fileName)}' and '${parentFolderId}' in parents and trashed=false`,
     'files(id,name,modifiedTime)',
   );
-  return files.length > 0 ? files[0].id : null;
+  return files[0]?.id ?? null;
 }
 
 async function getOrCreateBackupsFolder(token: string, dataFolderId: string): Promise<string> {

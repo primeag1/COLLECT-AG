@@ -290,14 +290,20 @@ export function FieldBuilder() {
   const handleMoveUp = async (fields: StudentFieldDefinition[], index: number) => {
     if (index === 0) return;
     const ids = fields.map(f => f.id);
-    [ids[index - 1], ids[index]] = [ids[index], ids[index - 1]];
+    const previous = ids[index - 1];
+    const current = ids[index];
+    if (!previous || !current) return;
+    [ids[index - 1], ids[index]] = [current, previous];
     await reorder(ids);
   };
 
   const handleMoveDown = async (fields: StudentFieldDefinition[], index: number) => {
     if (index === fields.length - 1) return;
     const ids = fields.map(f => f.id);
-    [ids[index], ids[index + 1]] = [ids[index + 1], ids[index]];
+    const current = ids[index];
+    const next = ids[index + 1];
+    if (!current || !next) return;
+    [ids[index], ids[index + 1]] = [next, current];
     await reorder(ids);
   };
 

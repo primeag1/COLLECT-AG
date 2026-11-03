@@ -73,7 +73,8 @@ export const schemaRepository = {
     const db = getDB();
     await db.transaction('rw', db.studentFields, async () => {
       for (let i = 0; i < orderedIds.length; i++) {
-        await db.studentFields.update(orderedIds[i], { order: i, updatedAt: now() });
+        const id = orderedIds[i];
+        if (id) await db.studentFields.update(id, { order: i, updatedAt: now() });
       }
     });
   },

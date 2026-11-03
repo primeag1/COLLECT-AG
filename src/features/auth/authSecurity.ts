@@ -18,8 +18,9 @@ export function parseOAuthRedirect(
 ): { accepted: boolean; accessToken: string | null; expiresIn: number | null; error: string | null } {
   const params = new URLSearchParams(hash.replace(/^#/, ''));
   const returnedStates = params.getAll('state');
+  const returnedState = returnedStates[0] ?? null;
   const accepted = returnedStates.length === 1
-    && matchesOAuthState(returnedStates[0], expectedState);
+    && matchesOAuthState(returnedState, expectedState);
 
   return {
     accepted,

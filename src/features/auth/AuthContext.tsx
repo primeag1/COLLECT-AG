@@ -102,7 +102,9 @@ interface GoogleTokenResponse {
 
 function parseJwt(token: string): Record<string, unknown> {
   try {
-    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const payload = token.split('.')[1];
+    if (!payload) return {};
+    const b64 = payload.replace(/-/g, '+').replace(/_/g, '/');
     return JSON.parse(atob(b64));
   } catch {
     return {};
@@ -231,6 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // instead of firing multiple simultaneous token requests.
   const refreshInFlightRef = useRef<Promise<string | null> | null>(null);
   const tokenRef = useRef<{ token: string; expiresAt: number } | null>(null);
+  const requestDriveAndIdentifyRef = useRef<() => void>(() => undefined);
   const [showSignOutChoice, setShowSignOutChoice] = useState(false);
   const [removeDataDefault, setRemoveDataDefault] = useState(false);
   const [signOutBusy, setSignOutBusy] = useState(false);
@@ -330,7 +333,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('[COLLECT-AG] Could not restore the saved sign-in identity:', error);
     }
     setState(s => ({ ...s, isLoading: false }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applyTokenResponse]);
 
   // ── Wait for GIS script then initialise ─────────────────────────────────
@@ -422,10 +424,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     window.google!.accounts.id.prompt((notification) => {
       if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        requestDriveAndIdentify();
+        requestDriveAndIdentifyRef.current();
       }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, state.gisReady, rememberUser]);
 
   // Fallback: use the OAuth2 token flow to get both identity + Drive token
@@ -489,6 +490,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     tc.requestAccessToken({ prompt: 'select_account' });
   }, [clientId, rememberToken, rememberUser]);
+  requestDriveAndIdentifyRef.current = requestDriveAndIdentify;
 
   // ── Request Drive access (interactive-capable — used on first grant) ─────
 

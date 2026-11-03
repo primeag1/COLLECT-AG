@@ -26,7 +26,8 @@ export function normalizeYtdAnchor(anchor: string | undefined): string {
  */
 export function resolveYtdStartDate(anchor: string | undefined, referenceDate = new Date()): string {
   const normalized = normalizeYtdAnchor(anchor);
-  const [month, day] = normalized.split('-').map(Number);
+  const month = Number(normalized.slice(0, 2));
+  const day = Number(normalized.slice(3, 5));
 
   const year = referenceDate.getFullYear();
   let start = new Date(year, month - 1, day);
