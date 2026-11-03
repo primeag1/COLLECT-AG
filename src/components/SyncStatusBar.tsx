@@ -62,69 +62,43 @@ export function SyncStatusBar({ sidebar = false }: SyncStatusBarProps) {
   if (sidebar) {
     return (
       <div
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 12px',
-          borderRadius: 'var(--radius-btn)',
-          backgroundColor: syncState === 'error'
-            ? 'rgba(239,68,68,0.12)'
-            : 'rgba(255,255,255,0.05)',
-          cursor: (config.action || connecting) ? 'pointer' : 'default',
-          transition: 'background 0.15s ease',
-        }}
-        onClick={config.action ? handleAction : undefined}
+        className={`sync-status-bar sync-status-sidebar${connecting ? ' is-connecting' : ''}`}
+        data-state={syncState}
+        role="status"
+        aria-live={syncState === 'error' ? 'assertive' : 'polite'}
+        aria-atomic="true"
         title={errorMessage ?? (lastSyncedAt ? `Last synced: ${formatRelativeTime(lastSyncedAt)}` : 'Not synced yet')}
       >
-        <div style={{
-          width: 7, height: 7, borderRadius: '50%',
-          backgroundColor: config.dot, flexShrink: 0,
-          animation: (config.pulse || connecting) ? 'fl-pulse 1s ease-in-out infinite' : 'none',
-        }} />
-        <span style={{
-          color: syncState === 'error' ? '#fca5a5' : 'rgba(255,255,255,0.5)',
-          fontSize: 12, fontWeight: 450,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          flex: 1,
-        }}>
+        <div className="sync-status-dot" />
+        <span className="sync-status-label">
           {connecting ? 'Connecting…' : config.label}
           {syncState === 'synced' && lastSyncedAt ? ` · ${formatRelativeTime(lastSyncedAt)}` : ''}
           {pendingLabel ? ` · ${pendingLabel}` : ''}
         </span>
         {config.action && !connecting && (
-          <span style={{ color: syncState === 'error' ? '#fca5a5' : 'rgba(255,255,255,0.4)', fontSize: 13 }}>↺</span>
+          <button
+            type="button"
+            onClick={handleAction}
+            aria-label={actionLabel}
+            className="sync-status-action"
+          >
+            ↺
+          </button>
         )}
-        <style>{`
-          @keyframes fl-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.25; }
-          }
-        `}</style>
       </div>
     );
   }
 
   // Full banner variant (for Settings → Sync & Data)
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 12,
-      padding: '12px 16px',
-      borderRadius: 12,
-      background: syncState === 'error'
-        ? 'rgba(239,68,68,0.06)'
-        : syncState === 'offline'
-        ? 'rgba(105,105,105,0.06)'
-        : 'var(--color-canvas)',
-      border: `1px solid ${
-        syncState === 'error'   ? 'rgba(239,68,68,0.2)'   :
-        syncState === 'offline' ? 'rgba(105,105,105,0.2)' :
-        'var(--color-dust)'
-      }`,
-    }}>
-      <div style={{
-        width: 10, height: 10, borderRadius: '50%',
-        backgroundColor: config.dot, flexShrink: 0,
-        animation: (config.pulse || connecting) ? 'fl-pulse 1s ease-in-out infinite' : 'none',
-      }} />
+    <div
+      className={`sync-status-bar sync-status-banner${connecting ? ' is-connecting' : ''}`}
+      data-state={syncState}
+      role="status"
+      aria-live={syncState === 'error' ? 'assertive' : 'polite'}
+      aria-atomic="true"
+    >
+      <div className="sync-status-dot" />
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--color-ink)', margin: 0 }}>
           {connecting ? 'Connecting to Google Drive…' : config.label}
@@ -167,12 +141,6 @@ export function SyncStatusBar({ sidebar = false }: SyncStatusBarProps) {
           {actionLabel}
         </button>
       )}
-      <style>{`
-        @keyframes fl-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.25; }
-        }
-      `}</style>
     </div>
   );
 }

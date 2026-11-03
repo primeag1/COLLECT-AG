@@ -27,22 +27,13 @@ export function AppShell() {
 
   const sidebarContent = (
     <nav
-      style={{
-        width: 240,
-        height: '100%',
-        backgroundColor: 'var(--color-ink)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px 14px',
-        gap: 4,
-        overflowY: 'auto',
-      }}
+      className="app-sidebar"
       aria-label="Main navigation"
     >
       {/* Logo — click to go to Dashboard */}
       <button
         onClick={() => { navigate('/app/dashboard'); setSidebarOpen(false); }}
-        style={{ background: 'none', border: 'none', padding: '0 6px 20px', cursor: 'pointer', display: 'block', textAlign: 'left' }}
+        className="app-sidebar-logo"
         aria-label="Go to Dashboard"
       >
         <Logo size={30} variant="full" dark={true} />
@@ -54,19 +45,7 @@ export function AppShell() {
           key={to}
           to={to}
           onClick={() => setSidebarOpen(false)}
-          style={({ isActive }) => ({
-            display: 'flex',
-            alignItems: 'center',
-            gap: 11,
-            padding: '10px 12px',
-            borderRadius: 12,
-            textDecoration: 'none',
-            color: isActive ? 'var(--color-ink)' : 'rgba(255,255,255,0.6)',
-            backgroundColor: isActive ? 'var(--color-canvas)' : 'transparent',
-            fontWeight: isActive ? 600 : 400,
-            fontSize: 14,
-            transition: 'background-color 0.12s ease, color 0.12s ease',
-          })}
+          className={({ isActive }) => `app-sidebar-link${isActive ? ' is-active' : ''}`}
         >
           {({ isActive }) => (
             <>
@@ -77,24 +56,18 @@ export function AppShell() {
         </NavLink>
       ))}
 
-      <div style={{ flex: 1 }} />
+      <div className="app-sidebar-spacer" />
 
       {/* Sync status */}
-      <div style={{ marginBottom: 6 }}>
+      <div className="app-sidebar-sync">
         <SyncStatusBar sidebar />
       </div>
-      <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, textAlign: 'center', letterSpacing: '0.08em' }}>
+      <p className="app-sidebar-credit">
         DEVELOPED BY PRIME
       </p>
 
       {/* User section */}
-      <div style={{
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        paddingTop: 14,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
-      }}>
+      <div className="app-sidebar-user">
         {user?.photoUrl ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 4px' }}>
             <img
@@ -118,26 +91,7 @@ export function AppShell() {
         )}
         <button
           onClick={handleSignOut}
-          style={{
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10,
-            color: 'rgba(255,255,255,0.55)',
-            padding: '8px 12px',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontFamily: 'var(--font-sans)',
-            textAlign: 'left',
-            transition: 'border-color 0.12s, color 0.12s',
-          }}
-          onMouseOver={e => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.3)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.85)';
-          }}
-          onMouseOut={e => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.12)';
-            (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)';
-          }}
+          className="app-sidebar-signout"
         >
           Sign out
         </button>
@@ -146,9 +100,9 @@ export function AppShell() {
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100dvh', backgroundColor: 'var(--color-canvas)' }}>
+    <div className="app-shell">
       {/* Desktop sidebar */}
-      <div className="sidebar-desktop" style={{ flexShrink: 0, position: 'sticky', top: 0, height: '100dvh' }}>
+      <div className="sidebar-desktop app-sidebar-desktop">
         {sidebarContent}
       </div>
 
@@ -156,70 +110,43 @@ export function AppShell() {
       {sidebarOpen && (
         <>
           <div
-            style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.45)', zIndex: 199 }}
+            className="app-sidebar-backdrop"
             onClick={() => setSidebarOpen(false)}
             aria-hidden="true"
           />
-          <div style={{ position: 'fixed', right: 0, top: 0, bottom: 0, zIndex: 200, width: 240 }}>
+          <div className="app-sidebar-mobile">
             {sidebarContent}
           </div>
         </>
       )}
 
       {/* Main content */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="app-shell-content">
         {/* Mobile topbar */}
         <div
           className="topbar-mobile"
-          style={{
-            display: 'none',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 16px',
-            height: 56,
-            backgroundColor: 'var(--color-ink)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-          }}
         >
           <button
             onClick={() => navigate('/app/dashboard')}
-            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}
+            className="app-topbar-logo"
             aria-label="Go to Dashboard"
           >
             <Logo size={28} variant="full" dark={true} />
           </button>
           <button
             onClick={() => setSidebarOpen(true)}
-            style={{
-              background: 'rgba(255,255,255,0.1)',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-              borderRadius: 8,
-              color: 'var(--color-white)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            className="app-topbar-menu"
             aria-label="Open navigation menu"
           >
             <Icons.menu size={20} color="white" />
           </button>
         </div>
 
-        <main style={{ flex: 1, overflow: 'auto' }}>
+        <main id="main-content" tabIndex={-1} className="app-shell-main">
           <Outlet />
         </main>
       </div>
 
-      <style>{`
-        @media (max-width: 767px) {
-          .sidebar-desktop { display: none !important; }
-          .topbar-mobile { display: flex !important; }
-        }
-      `}</style>
     </div>
   );
 }
